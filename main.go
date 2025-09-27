@@ -70,7 +70,7 @@ func runSetup() {
 		),
 		huh.NewGroup(
 			huh.NewMultiSelect[string]().
-				Title("Choose your deployment tools (kubectl always installed):").
+				Title("Choose your deployment tools:").
 				Options(
 					huh.NewOption("Helm", "helm"),
 					huh.NewOption("Kustomize", "kustomize"),
