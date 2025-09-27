@@ -27,5 +27,5 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         goos: linux
         goarch: amd64
-        binary_name: mon-app  # Change selon le nom de ton app
-        asset_name: mon-app-linux-amd64
+        binary_name: kubelocal  # Change selon le nom de ton app
+        asset_name: kubelocal-linux-amd64
