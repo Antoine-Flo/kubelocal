@@ -34,7 +34,7 @@ func setupSignalHandler() {
 
 // runInstall orchestrates the installation process
 func runInstall() error {
-	ui.PrintHeader("🚀 Kubernetes Local Environment Installer")
+	ui.PrintHeader("🚀 Kubernetes Local Environment Installer :")
 
 	runtime, err := chooseContainerRuntime()
 	if err != nil {
