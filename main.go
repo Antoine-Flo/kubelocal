@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/huh/spinner"
@@ -95,29 +94,34 @@ func runSetup() {
 	}
 	fmt.Println()
 
-	// Installation simulation
-	tools := []string{containerRuntime, kubernetesLocal, "kubectl"}
-	tools = append(tools, cliTools...)
-
+	// Installation réelle
 	fmt.Println("\n=== Installation in progress ===")
-	for _, tool := range tools {
-		simulateInstall(tool)
+
+	// Installer le container runtime
+	switch containerRuntime {
+	case "docker":
+		installWithSpinner("Docker", installDocker)
+	case "podman":
+		installWithSpinner("Podman", installPodman)
 	}
-	fmt.Println("\n✅ Local Kubernetes setup completed successfully!")
+
+	fmt.Println("\n✅ Installation completed!")
 }
 
-func simulateInstall(tool string) {
+// installWithSpinner installe un outil avec un spinner
+func installWithSpinner(name string, installFunc func() error) {
+	var installErr error
+
 	err := spinner.New().
-		Title(fmt.Sprintf("Installing %s...", tool)).
+		Title(fmt.Sprintf("Installing %s...", name)).
 		Action(func() {
-			time.Sleep(2 * time.Second) // Simulate installation time
+			installErr = installFunc()
 		}).
 		Run()
 
 	if err != nil {
-		fmt.Printf("Error installing %s: %v\n", tool, err)
-		return
+		fmt.Printf("❌ %s spinner error: %v\n", name, err)
+	} else if installErr != nil {
+		fmt.Printf("❌ %s installation failed: %v\n", name, installErr)
 	}
-
-	fmt.Printf("✅ %s installed successfully\n", tool)
 }
