@@ -15,7 +15,6 @@ curl -fsSL https://github.com/Antoine-Flo/kubelocal/releases/download/v0.0.5/kub
 ## What is kubelocal?
 
 kubelocal is an interactive installer that sets up a complete local Kubernetes development environment on your machine. It handles all the complexity of installing and configuring the necessary tools for local Kubernetes development.
-
 ## Features
 
 - 🐳 **Container Runtime Support**: Choose between Docker or Podman
