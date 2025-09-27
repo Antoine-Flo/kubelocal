@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -11,7 +12,19 @@ import (
 	"github.com/Antoine-Flo/kubelocal/ui"
 )
 
+var (
+	version = "dev"
+)
+
 func main() {
+	showVersion := flag.Bool("version", false, "Affiche la version")
+	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("Version: %s\n", version)
+		os.Exit(0)
+	}
+
 	setupSignalHandler()
 
 	if err := runInstall(); err != nil {

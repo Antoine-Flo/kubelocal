@@ -1,20 +1,31 @@
+name: Release
+
 on:
   push:
     tags:
-      - 'v*'
-
-permissions:
-    contents: write
-    packages: write
+      - 'v*' # Déclenche sur les tags qui commencent par 'v'
 
 jobs:
-  release-linux-amd64:
-    name: release linux/amd64
+  release:
     runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write # Nécessaire pour créer des releases
+      
     steps:
-    - uses: actions/checkout@v4
-    - uses: wangyoucao577/go-release-action@v1
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21' # Ajuste selon ta version
+        
+    - name: Go Release Binaries
+      uses: wangyoucao577/go-release-action@v1.53
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         goos: linux
         goarch: amd64
+        binary_name: mon-app  # Change selon le nom de ton app
+        asset_name: mon-app-linux-amd64
