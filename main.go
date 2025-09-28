@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Antoine-Flo/kubelocal/tools"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/huh/spinner"
 )
@@ -94,33 +95,33 @@ func runSetup() {
 	}
 	fmt.Println()
 
-	// Installation réelle
+	// Real installation
 	fmt.Println("\n=== Installation in progress ===")
 
-	// Installer le container runtime
+	// Install container runtime
 	switch containerRuntime {
 	case "docker":
-		installWithSpinner("Docker 🐋", installDocker)
+		installWithSpinner("Docker 🐋", tools.InstallDocker)
 	case "podman":
-		installWithSpinner("Podman 🚀", installPodman)
+		installWithSpinner("Podman 🚀", tools.InstallPodman)
 	}
 
-	// Installer la solution Kubernetes locale
+	// Install local Kubernetes solution
 	switch kubernetesLocal {
 	case "kind":
-		installWithSpinner("Kind ☸️", installKind)
+		installWithSpinner("Kind ☸️", tools.InstallKind)
 	case "minikube":
-		installWithSpinner("Minikube 🚀", installMinikube)
+		installWithSpinner("Minikube 🚀", tools.InstallMinikube)
 	}
 
-	// Configurer l'alias kubectl en arrière-plan
-	installSilently(setupKubectlAlias)
+	// Configure kubectl alias in background
+	installSilently(tools.SetupKubectlAlias)
 
-	// Afficher les instructions de démarrage
+	// Show getting started instructions
 	showGettingStarted(containerRuntime, kubernetesLocal, cliTools)
 }
 
-// installWithSpinner installe un outil avec un spinner
+// installWithSpinner installs a tool with a spinner
 func installWithSpinner(name string, installFunc func() error) {
 	var installErr error
 
@@ -138,19 +139,19 @@ func installWithSpinner(name string, installFunc func() error) {
 	}
 }
 
-// installSilently installe un outil en arrière-plan sans affichage
+// installSilently installs a tool in background without display
 func installSilently(installFunc func() error) error {
 	return installFunc()
 }
 
-// showGettingStarted affiche les instructions personnalisées selon l'installation
+// showGettingStarted displays customized instructions based on installation
 func showGettingStarted(containerRuntime, kubernetesLocal string, cliTools []string) {
 	fmt.Println("\n🎉 Installation completed successfully!")
 	fmt.Println("\n📝 We created an alias 'k' for kubectl for you!")
 
 	fmt.Println("\n🚀 Getting Started:")
 
-	// Instructions spécifiques selon la solution Kubernetes
+	// Specific instructions based on Kubernetes solution
 	switch kubernetesLocal {
 	case "kind":
 		fmt.Println("   1. Create your first cluster:")
@@ -173,19 +174,21 @@ func showGettingStarted(containerRuntime, kubernetesLocal string, cliTools []str
 		fmt.Printf("      minikube stop\n")
 	}
 
-	// Instructions pour Docker/Podman
+	// Instructions for Docker/Podman
 	fmt.Printf("\n💡 Container Runtime (%s) Tips:\n", containerRuntime)
 	switch containerRuntime {
 	case "docker":
 		fmt.Println("   • Check Docker status: docker --version")
-		fmt.Println("   • List running containers: docker ps")
+		fmt.Println("   • Test Docker access: docker ps")
+		fmt.Println("   • If permission denied, run: newgrp docker")
+		fmt.Println("   • Or logout/login to apply docker group changes")
 
 	case "podman":
 		fmt.Println("   • Check Podman status: podman --version")
 		fmt.Println("   • List running containers: podman ps")
 	}
 
-	// Instructions pour les outils CLI
+	// Instructions for CLI tools
 	if len(cliTools) > 0 {
 		fmt.Println("\n🔧 Additional Tools:")
 		for _, tool := range cliTools {
