@@ -29,18 +29,6 @@ kubelocal is an interactive installer designed for **learning and experimentatio
 - ⚡ **Fast**: Optimized for quick local learning setup
 - 🔗 **kubectl Alias**: Automatically creates a convenient 'k' alias for kubectl
 
-## What Gets Installed
-
-The installer will set up:
-
-1. **kubectl** - Latest version of the Kubernetes command-line tool
-2. **Container Runtime** - Docker or Podman (your choice)
-3. **Kubernetes Distribution** - Kind or Minikube (your choice)
-4. **CLI Tools** - Optional Helm and/or Kustomize (your choice)
-5. **kubectl Alias** - Convenient 'k' alias for kubectl commands
-
-> **Note**: This tool installs the necessary tools for learning Kubernetes locally. You'll need to create your first cluster manually using the provided instructions.
-
 ## Requirements
 
 - **OS**: Debian-based Linux (tested on Debian)
