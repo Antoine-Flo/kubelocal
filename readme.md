@@ -9,31 +9,37 @@
 ## Quick Start
 
 ```bash
-curl -fsSL https://github.com/Antoine-Flo/kubelocal/releases/download/v0.0.5/kubelocal-v0.0.5-linux-amd64.tar.gz | tar -xz && ./kubelocal
+curl -fsSL https://kubelocal-website.pages.dev/install | sh
 ```
 
 ## What is kubelocal?
 
-kubelocal is an interactive installer that sets up a complete local Kubernetes development environment on your machine. It handles all the complexity of installing and configuring the necessary tools for local Kubernetes development.
+kubelocal is an interactive installer designed for **learning and experimentation** with local Kubernetes development. It simplifies the setup of essential tools needed to experiment with Kubernetes locally, making it easy to get started with hands-on learning.
+
+> ⚠️ **Linux amd64 only** - This tool currently supports only Linux amd64 architecture
+
+> ⚠️ **Learning Tool**: This project is designed for educational purposes and local experimentation. It should be used in VMs or WSL environments for learning Kubernetes concepts. **This is not intended for production environments.**
 ## Features
 
 - 🐳 **Container Runtime Support**: Choose between Docker or Podman
 - ☸️ **Kubernetes Distributions**: Install Kind or Minikube
-- 🔧 **Complete Setup**: Automatically installs kubectl and configures your cluster
-- 💾 **Local Storage**: Sets up persistent storage for your workloads
+- 🔧 **kubectl**: Installs the latest version of the Kubernetes command-line tool
+- 🛠️ **CLI Tools**: Optional installation of Helm and Kustomize
 - 🎯 **Interactive**: User-friendly prompts guide you through the installation
-- ⚡ **Fast**: Optimized for quick local development setup
+- ⚡ **Fast**: Optimized for quick local learning setup
+- 🔗 **kubectl Alias**: Automatically creates a convenient 'k' alias for kubectl
 
 ## What Gets Installed
 
 The installer will set up:
 
-1. **Prerequisites** - Essential system packages
+1. **kubectl** - Latest version of the Kubernetes command-line tool
 2. **Container Runtime** - Docker or Podman (your choice)
-3. **kubectl** - Latest version of the Kubernetes command-line tool
-4. **Kubernetes Distribution** - Kind or Minikube (your choice)
-5. **Cluster Configuration** - Ready-to-use local cluster
-6. **Local Storage** - Persistent volume support
+3. **Kubernetes Distribution** - Kind or Minikube (your choice)
+4. **CLI Tools** - Optional Helm and/or Kustomize (your choice)
+5. **kubectl Alias** - Convenient 'k' alias for kubectl commands
+
+> **Note**: This tool installs the necessary tools for learning Kubernetes locally. You'll need to create your first cluster manually using the provided instructions.
 
 ## Requirements
 
@@ -43,16 +49,13 @@ The installer will set up:
 
 ## Installation Options
 
-### Option 1: Direct Download & Run
+### Recommended: Website Installer
 ```bash
-# Download and extract
-curl -fsSL https://github.com/Antoine-Flo/kubelocal/releases/download/v0.0.5/kubelocal-v0.0.5-linux-amd64.tar.gz | tar -xz
-
-# Run the installer
-./kubelocal
+# One-line installer from the official website
+curl -fsSL https://kubelocal-website.pages.dev/install | sh
 ```
 
-### Option 2: Manual Download
+### Alternative: Manual Download
 ```bash
 # Download the release
 wget https://github.com/Antoine-Flo/kubelocal/releases/download/v0.0.5/kubelocal-v0.0.5-linux-amd64.tar.gz
@@ -68,30 +71,60 @@ tar -xzf kubelocal-v0.0.5-linux-amd64.tar.gz
 
 Once installed, the script will guide you through:
 
-1. **Container Runtime Selection**: Choose Docker (d) or Podman (p)
-2. **Kubernetes Distribution**: Choose Kind (k) or Minikube (m)
-3. **Automatic Installation**: Sit back and let the installer do its work
+1. **Container Runtime Selection**: Choose Docker or Podman
+2. **Kubernetes Distribution**: Choose Kind or Minikube
+3. **CLI Tools Selection**: Choose optional tools like Helm and Kustomize
+4. **Automatic Installation**: Sit back and let the installer do its work
 
 ## Example Output
 
 ```
-🚀 Kubernetes Local Environment Installer
+ ██╗  ██╗██╗   ██╗██████╗ ███████╗██╗      ██████╗  ██████╗ █████╗ ██╗     
+ ██║ ██╔╝██║   ██║██╔══██╗██╔════╝██║     ██╔═══██╗██╔════╝██╔══██╗██║     
+ █████╔╝ ██║   ██║██████╔╝█████╗  ██║     ██║   ██║██║     ███████║██║     
+ ██╔═██╗ ██║   ██║██╔══██╗██╔══╝  ██║     ██║   ██║██║     ██╔══██╗██║     
+ ██║  ██╗╚██████╔╝██████╔╝███████╗███████╗╚██████╔╝╚██████╗██║  ██║███████╗
+ ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝╚══════╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝╚══════╝
+                                                                           
+          🚀 Quick Kubernetes Local Development Setup Tool 🚀
 
-Install Docker (d) or Podman (p) : d
-Install Kind (k) or Minikube (m) : k
+Welcome! Let's set up your local Kubernetes environment.
 
-🔧 Starting installation process...
+=== Configuration Summary ===
+Container Runtime: docker
+Kubernetes Local: kind
+Deployment Tools: kubectl, helm
 
-[1/7] Updating package lists... ✓ Done
-[2/7] Installing prerequisites... ✓ Done
-[3/7] Installing Docker... ✓ Done
-[4/7] Installing kubectl (latest version)... ✓ Done
-[5/7] Installing Kind... ✓ Done
-[6/7] Configuring cluster... ✓ Done
-[7/7] Setting up local storage... ✓ Done
+=== Installation in progress ===
+✅ Docker installed successfully
+✅ Kind installed successfully
 
 🎉 Installation completed successfully!
-Your local Kubernetes environment is ready with Docker and Kind
+
+📝 We created an alias 'k' for kubectl for you!
+
+🚀 Getting Started:
+   1. Create your first cluster:
+      kind create cluster --name my-cluster
+
+   2. Verify your cluster:
+      k cluster-info --context kind-my-cluster
+      k get nodes
+
+   3. When you're done:
+      kind delete cluster --name my-cluster
+
+💡 Container Runtime (docker) Tips:
+   • Check Docker status: docker --version
+   • Test Docker access: docker ps
+   • If permission denied, run: newgrp docker
+   • Or logout/login to apply docker group changes
+
+🔧 Additional Tools:
+   • Helm: helm version
+     Get started: helm create my-chart
+
+✨ Happy Kubernetes development! ✨
 ```
 
 ## Version
@@ -109,8 +142,9 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Support
+## Website & Support
 
+- 🌐 **Website**: [https://kubelocal-website.pages.dev/](https://kubelocal-website.pages.dev/) - Get more information and documentation
 - 🐛 **Issues**: [GitHub Issues](https://github.com/Antoine-Flo/kubelocal/issues)
 - 📖 **Documentation**: [GitHub Wiki](https://github.com/Antoine-Flo/kubelocal/wiki)
 - 💬 **Discussions**: [GitHub Discussions](https://github.com/Antoine-Flo/kubelocal/discussions)

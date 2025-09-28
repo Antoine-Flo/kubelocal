@@ -98,6 +98,9 @@ func runSetup() {
 	// Real installation
 	fmt.Println("\n=== Installation in progress ===")
 
+	// Install kubectl first (required for Kubernetes solutions)
+	installSilently(tools.InstallKubectl)
+
 	// Install container runtime
 	switch containerRuntime {
 	case "docker":
@@ -147,7 +150,7 @@ func installSilently(installFunc func() error) error {
 // showGettingStarted displays customized instructions based on installation
 func showGettingStarted(containerRuntime, kubernetesLocal string, cliTools []string) {
 	fmt.Println("\n🎉 Installation completed successfully!")
-	fmt.Println("\n📝 We created an alias 'k' for kubectl for you!")
+	fmt.Println("\n📝 We installed kubectl and created an alias 'k' for you!")
 
 	fmt.Println("\n🚀 Getting Started:")
 
