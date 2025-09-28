@@ -8,7 +8,7 @@ import (
 )
 
 // InstallKind installs Kind
-func InstallKind(log logger.Logger) error {
+func InstallKind(log *logger.Logger) error {
 	log.Info("Downloading Kind (AMD64 Linux)...")
 
 	// Download Kind (AMD64 Linux)

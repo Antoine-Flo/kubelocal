@@ -6,10 +6,11 @@ import (
 	"os/user"
 
 	"github.com/Antoine-Flo/kubelocal/pkg/logger"
+	"go.uber.org/zap"
 )
 
 // InstallDocker installs Docker
-func InstallDocker(log logger.Logger) error {
+func InstallDocker(log *logger.Logger) error {
 	log.Info("Downloading Docker installation script...")
 
 	// Download the installation script
@@ -33,7 +34,7 @@ func InstallDocker(log logger.Logger) error {
 	// Configure Docker permissions
 	log.Info("Configuring Docker permissions...")
 	if err := setupDockerPermissions(log); err != nil {
-		log.Warn("Docker installed but permission setup failed: %v", err)
+		log.Warn("Docker installed but permission setup failed", zap.Error(err))
 		return err
 	}
 
@@ -49,14 +50,14 @@ func InstallDocker(log logger.Logger) error {
 }
 
 // setupDockerPermissions configures Docker permissions for the current user
-func setupDockerPermissions(log logger.Logger) error {
+func setupDockerPermissions(log *logger.Logger) error {
 	// Get current user
 	currentUser, err := user.Current()
 	if err != nil {
 		return fmt.Errorf("failed to get current user: %w", err)
 	}
 
-	log.Debug("Adding user %s to docker group...", currentUser.Username)
+	log.Debug("Adding user to docker group", zap.String("username", currentUser.Username))
 
 	// Add user to docker group
 	addUserCmd := exec.Command("sudo", "usermod", "-aG", "docker", currentUser.Username)

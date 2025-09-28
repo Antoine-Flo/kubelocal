@@ -5,10 +5,11 @@ import (
 	"os/exec"
 
 	"github.com/Antoine-Flo/kubelocal/pkg/logger"
+	"go.uber.org/zap"
 )
 
 // InstallKubectl downloads and installs kubectl for linux amd64 with checksum validation
-func InstallKubectl(log logger.Logger) error {
+func InstallKubectl(log *logger.Logger) error {
 	log.Info("Getting latest kubectl version...")
 
 	// Get the latest stable version
@@ -23,7 +24,7 @@ func InstallKubectl(log logger.Logger) error {
 		return fmt.Errorf("failed to get kubectl version: %w", err)
 	}
 	version := string(versionBytes)
-	log.Info("Latest kubectl version: %s", version)
+	log.Info("Latest kubectl version", zap.String("version", version))
 
 	// Download kubectl binary
 	log.Info("Downloading kubectl binary...")
@@ -65,7 +66,7 @@ func InstallKubectl(log logger.Logger) error {
 }
 
 // SetupKubectlAlias adds the k=kubectl alias to bashrc
-func SetupKubectlAlias(log logger.Logger) error {
+func SetupKubectlAlias(log *logger.Logger) error {
 	log.Info("Adding kubectl alias 'k' to bashrc...")
 
 	// Add alias to bashrc

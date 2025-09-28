@@ -8,7 +8,7 @@ import (
 )
 
 // InstallPodman installs Podman
-func InstallPodman(log logger.Logger) error {
+func InstallPodman(log *logger.Logger) error {
 	log.Info("Installing Podman...")
 
 	// Update packages

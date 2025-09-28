@@ -8,7 +8,7 @@ import (
 )
 
 // InstallMinikube installs Minikube
-func InstallMinikube(log logger.Logger) error {
+func InstallMinikube(log *logger.Logger) error {
 	log.Info("Downloading Minikube...")
 
 	// Download Minikube

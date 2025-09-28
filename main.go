@@ -8,6 +8,7 @@ import (
 	"github.com/Antoine-Flo/kubelocal/pkg/logger"
 	"github.com/Antoine-Flo/kubelocal/tools"
 	"github.com/charmbracelet/huh"
+	"go.uber.org/zap"
 )
 
 var (
@@ -27,7 +28,7 @@ func main() {
 	log, err := logger.NewLogger()
 	if err != nil {
 		fmt.Println("❌ Failed to initialize logging system.")
-		fmt.Println("   Cannot continue installation without proper logging.")
+		fmt.Printf("   Error: %v\n", err)
 		os.Exit(1)
 	}
 	defer log.Close()
@@ -47,23 +48,25 @@ func showWelcome() {
 }
 
 // installComponent handles the common pattern of printing progress, logging, and error handling
-func installComponent(log logger.Logger, component string, installFunc func(logger.Logger) error) {
+func installComponent(log *logger.Logger, component string, installFunc func(*logger.Logger) error) {
 	fmt.Printf("Installing %s...\n", component)
-	log.Info("Installing %s...", component)
+	log.Info("Installing component", zap.String("component", component))
 	if err := installFunc(log); err != nil {
 		handleInstallationError(log, component, err)
 	}
 }
 
 // handleInstallationError logs the error and shows a simple message to the user
-func handleInstallationError(log logger.Logger, component string, err error) {
-	log.Error("%s installation failed: %v", component, err)
+func handleInstallationError(log *logger.Logger, component string, err error) {
+	log.Error("Installation failed",
+		zap.String("component", component),
+		zap.Error(err))
 	fmt.Printf("❌ Something went wrong during %s installation.\n", component)
-	fmt.Println("   Find the full log in /var/log/kubelocal/install.log")
+	fmt.Println("   Find the full log in ~/.local/share/kubelocal/logs/install.log or /var/log/kubelocal/install.log")
 	os.Exit(1)
 }
 
-func runSetup(log logger.Logger) {
+func runSetup(log *logger.Logger) {
 	var (
 		containerRuntime string
 		kubernetesLocal  string
@@ -105,15 +108,17 @@ func runSetup(log logger.Logger) {
 
 	err := form.Run()
 	if err != nil {
-		log.Error("Form execution failed: %v", err)
+		log.Error("Form execution failed", zap.Error(err))
 		fmt.Println("❌ Something went wrong during setup.")
-		fmt.Println("   Find the full log in /var/log/kubelocal/install.log")
+		fmt.Println("   Find the full log in ~/.local/share/kubelocal/logs/install.log or /var/log/kubelocal/install.log")
 		os.Exit(1)
 	}
 
 	// Log user selections
-	log.Debug("User selected: containerRuntime=%s, kubernetesLocal=%s, cliTools=%v",
-		containerRuntime, kubernetesLocal, cliTools)
+	log.Debug("User selections",
+		zap.String("container_runtime", containerRuntime),
+		zap.String("kubernetes_local", kubernetesLocal),
+		zap.Strings("cli_tools", cliTools))
 
 	// Display choices and simulate installation
 	fmt.Println("\n=== Configuration Summary ===")
@@ -149,10 +154,10 @@ func runSetup(log logger.Logger) {
 	}
 
 	// Configure kubectl alias in background
-	log.Info("Setting up kubectl alias...")
+	log.Info("Setting up kubectl alias")
 	if err := tools.SetupKubectlAlias(log); err != nil {
 		// kubectl alias setup is not critical, just warn the user
-		log.Warn("kubectl alias setup failed: %v", err)
+		log.Warn("kubectl alias setup failed", zap.Error(err))
 		fmt.Println("⚠️  Warning: kubectl alias setup failed.")
 		fmt.Println("   You can manually add 'alias k=kubectl' to your ~/.bashrc")
 	}
