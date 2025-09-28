@@ -3,6 +3,7 @@ package tools
 import (
 	"fmt"
 	"os/exec"
+	"strings"
 
 	"github.com/Antoine-Flo/kubelocal/pkg/logger"
 	"go.uber.org/zap"
@@ -14,16 +15,12 @@ func InstallKubectl(log *logger.Logger) error {
 
 	// Get the latest stable version
 	getVersionCmd := exec.Command("curl", "-L", "-s", "https://dl.k8s.io/release/stable.txt")
-	if err := log.LogCommand(getVersionCmd); err != nil {
-		return fmt.Errorf("failed to get kubectl version: %w", err)
-	}
-
-	// Get version from command output
 	versionBytes, err := getVersionCmd.Output()
 	if err != nil {
+		log.Error("Failed to get kubectl version", zap.Error(err))
 		return fmt.Errorf("failed to get kubectl version: %w", err)
 	}
-	version := string(versionBytes)
+	version := strings.TrimSpace(string(versionBytes))
 	log.Info("Latest kubectl version", zap.String("version", version))
 
 	// Download kubectl binary

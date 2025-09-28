@@ -39,10 +39,11 @@ func main() {
 
 func showWelcome() {
 	fmt.Print(`
-							╦╔═╦ ╦╔╗ ╔═╗╦  ╔═╗╔═╗╔═╗╦  
-							╠╩╗║ ║╠╩╗║╣ ║  ║ ║║  ╠═╣║  
-							╩ ╩╚═╝╚═╝╚═╝╩═╝╚═╝╚═╝╩ ╩╩═╝
-    🚀 Quick Kubernetes Local Development Setup 🚀
+╦╔═╦ ╦╔╗ ╔═╗╦  ╔═╗╔═╗╔═╗╦  
+╠╩╗║ ║╠╩╗║╣ ║  ║ ║║  ╠═╣║  
+╩ ╩╚═╝╚═╝╚═╝╩═╝╚═╝╚═╝╩ ╩╩═╝
+Kubernetes Local Development Setup 🚀
+
 `)
 	fmt.Print("Welcome! Let's set up your local Kubernetes environment.\n")
 }
