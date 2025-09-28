@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 	"os/user"
+	"strings"
 
 	"github.com/Antoine-Flo/kubelocal/pkg/logger"
 	"go.uber.org/zap"
@@ -57,13 +58,97 @@ func setupDockerPermissions(log *logger.Logger) error {
 		return fmt.Errorf("failed to get current user: %w", err)
 	}
 
-	log.Debug("Adding user to docker group", zap.String("username", currentUser.Username))
+	log.Info("Starting Docker permissions setup", zap.String("username", currentUser.Username))
 
-	// Add user to docker group
-	addUserCmd := exec.Command("sudo", "usermod", "-aG", "docker", currentUser.Username)
-	if err := log.LogCommand(addUserCmd); err != nil {
-		return fmt.Errorf("failed to add user to docker group: %w", err)
+	// Check if user is already in docker group
+	log.Debug("Checking if user is already in docker group")
+	if isUserInDockerGroup(currentUser.Username) {
+		log.Info("User is already in docker group")
+	} else {
+		log.Debug("User not in docker group, adding to docker group")
+		addUserCmd := exec.Command("sudo", "usermod", "-aG", "docker", currentUser.Username)
+		if err := log.LogCommand(addUserCmd); err != nil {
+			log.Error("Failed to add user to docker group", zap.Error(err))
+			return fmt.Errorf("failed to add user to docker group: %w", err)
+		}
+		log.Info("User successfully added to docker group")
 	}
 
-	return nil
+	// Test Docker access before trying solutions
+	log.Debug("Testing Docker access before applying solutions")
+	if canAccessDocker() {
+		log.Info("Docker is already accessible, no additional setup needed")
+		return nil
+	}
+
+	// Solution 1: Try using sg to activate docker group
+	log.Info("Solution 1: Attempting to activate docker group with sg")
+	sgCmd := exec.Command("sg", "docker", "-c", "docker version")
+	if err := log.LogCommand(sgCmd); err != nil {
+		log.Warn("Solution 1 failed: sg command failed", zap.Error(err))
+	} else {
+		log.Info("Solution 1 successful: Docker accessible via sg")
+		// Test if we can still access docker after sg
+		if canAccessDocker() {
+			log.Info("Docker access confirmed after sg activation")
+			return nil
+		}
+	}
+
+	// Solution 2: Try changing docker.sock permissions
+	log.Info("Solution 2: Attempting to change docker.sock permissions")
+	sockCmd := exec.Command("sudo", "chmod", "666", "/var/run/docker.sock")
+	if err := log.LogCommand(sockCmd); err != nil {
+		log.Warn("Solution 2 failed: Could not change docker.sock permissions", zap.Error(err))
+	} else {
+		log.Info("Solution 2 applied: docker.sock permissions changed to 666")
+		// Test Docker access after permission change
+		if canAccessDocker() {
+			log.Info("Solution 2 successful: Docker accessible after permission change")
+			return nil
+		} else {
+			log.Warn("Solution 2 applied but Docker still not accessible")
+		}
+	}
+
+	// Solution 3: Try newgrp command
+	log.Info("Solution 3: Attempting to activate docker group with newgrp")
+	newgrpCmd := exec.Command("bash", "-c", "newgrp docker -c 'docker version'")
+	if err := log.LogCommand(newgrpCmd); err != nil {
+		log.Warn("Solution 3 failed: newgrp command failed", zap.Error(err))
+	} else {
+		log.Info("Solution 3 successful: Docker accessible via newgrp")
+		// Test if we can still access docker after newgrp
+		if canAccessDocker() {
+			log.Info("Docker access confirmed after newgrp activation")
+			return nil
+		}
+	}
+
+	// Final test
+	log.Debug("Running final Docker access test")
+	if canAccessDocker() {
+		log.Info("Docker permissions setup completed successfully")
+		return nil
+	}
+
+	log.Warn("All solutions attempted but Docker still not accessible")
+	return fmt.Errorf("failed to make Docker accessible after trying all solutions")
+}
+
+// isUserInDockerGroup checks if the user is already in the docker group
+func isUserInDockerGroup(username string) bool {
+	cmd := exec.Command("groups", username)
+	output, err := cmd.Output()
+	if err != nil {
+		return false
+	}
+	return strings.Contains(string(output), "docker")
+}
+
+// canAccessDocker tests if Docker is accessible without sudo
+func canAccessDocker() bool {
+	cmd := exec.Command("docker", "version", "--format", "{{.Server.Version}}")
+	err := cmd.Run()
+	return err == nil
 }
