@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Antoine-Flo/kubelocal/pkg/logger"
 	"github.com/Antoine-Flo/kubelocal/tools"
 	"github.com/charmbracelet/huh"
-	"github.com/charmbracelet/huh/spinner"
 )
 
 var (
@@ -23,30 +23,54 @@ func main() {
 		os.Exit(0)
 	}
 
+	// Initialize logger
+	log, err := logger.NewLogger()
+	if err != nil {
+		fmt.Println("❌ Failed to initialize logging system.")
+		fmt.Println("   Cannot continue installation without proper logging.")
+		os.Exit(1)
+	}
+	defer log.Close()
+
 	showWelcome()
-	runSetup()
+	runSetup(log)
 }
 
 func showWelcome() {
-	fmt.Println(`
- ██╗  ██╗██╗   ██╗██████╗ ███████╗██╗      ██████╗  ██████╗ █████╗ ██╗     
- ██║ ██╔╝██║   ██║██╔══██╗██╔════╝██║     ██╔═══██╗██╔════╝██╔══██╗██║     
- █████╔╝ ██║   ██║██████╔╝█████╗  ██║     ██║   ██║██║     ███████║██║     
- ██╔═██╗ ██║   ██║██╔══██╗██╔══╝  ██║     ██║   ██║██║     ██╔══██║██║     
- ██║  ██╗╚██████╔╝██████╔╝███████╗███████╗╚██████╔╝╚██████╗██║  ██║███████╗
- ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝╚══════╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝╚══════╝
-                                                                            
-          🚀 Quick Kubernetes Local Development Setup Tool 🚀
+	fmt.Print(`
+							╦╔═╦ ╦╔╗ ╔═╗╦  ╔═╗╔═╗╔═╗╦  
+							╠╩╗║ ║╠╩╗║╣ ║  ║ ║║  ╠═╣║  
+							╩ ╩╚═╝╚═╝╚═╝╩═╝╚═╝╚═╝╩ ╩╩═╝
+    🚀 Quick Kubernetes Local Development Setup 🚀
 `)
-	fmt.Println("Welcome! Let's set up your local Kubernetes environment.\n")
+	fmt.Print("Welcome! Let's set up your local Kubernetes environment.\n")
 }
 
-func runSetup() {
+// installComponent handles the common pattern of printing progress, logging, and error handling
+func installComponent(log logger.Logger, component string, installFunc func(logger.Logger) error) {
+	fmt.Printf("Installing %s...\n", component)
+	log.Info("Installing %s...", component)
+	if err := installFunc(log); err != nil {
+		handleInstallationError(log, component, err)
+	}
+}
+
+// handleInstallationError logs the error and shows a simple message to the user
+func handleInstallationError(log logger.Logger, component string, err error) {
+	log.Error("%s installation failed: %v", component, err)
+	fmt.Printf("❌ Something went wrong during %s installation.\n", component)
+	fmt.Println("   Find the full log in /var/log/kubelocal/install.log")
+	os.Exit(1)
+}
+
+func runSetup(log logger.Logger) {
 	var (
 		containerRuntime string
 		kubernetesLocal  string
 		cliTools         []string
 	)
+
+	log.Info("Starting kubelocal installation")
 
 	// Container runtime selection
 	form := huh.NewForm(
@@ -81,9 +105,15 @@ func runSetup() {
 
 	err := form.Run()
 	if err != nil {
-		fmt.Printf("Error: %v\n", err)
+		log.Error("Form execution failed: %v", err)
+		fmt.Println("❌ Something went wrong during setup.")
+		fmt.Println("   Find the full log in /var/log/kubelocal/install.log")
 		os.Exit(1)
 	}
+
+	// Log user selections
+	log.Debug("User selected: containerRuntime=%s, kubernetesLocal=%s, cliTools=%v",
+		containerRuntime, kubernetesLocal, cliTools)
 
 	// Display choices and simulate installation
 	fmt.Println("\n=== Configuration Summary ===")
@@ -97,54 +127,40 @@ func runSetup() {
 
 	// Real installation
 	fmt.Println("\n=== Installation in progress ===")
+	log.Info("Starting installation process")
 
 	// Install kubectl first (required for Kubernetes solutions)
-	installSilently(tools.InstallKubectl)
+	installComponent(log, "kubectl", tools.InstallKubectl)
 
 	// Install container runtime
 	switch containerRuntime {
 	case "docker":
-		installWithSpinner("Docker 🐋", tools.InstallDocker)
+		installComponent(log, "Docker", tools.InstallDocker)
 	case "podman":
-		installWithSpinner("Podman 🚀", tools.InstallPodman)
+		installComponent(log, "Podman", tools.InstallPodman)
 	}
 
 	// Install local Kubernetes solution
 	switch kubernetesLocal {
 	case "kind":
-		installWithSpinner("Kind ☸️", tools.InstallKind)
+		installComponent(log, "Kind", tools.InstallKind)
 	case "minikube":
-		installWithSpinner("Minikube 🚀", tools.InstallMinikube)
+		installComponent(log, "Minikube", tools.InstallMinikube)
 	}
 
 	// Configure kubectl alias in background
-	installSilently(tools.SetupKubectlAlias)
+	log.Info("Setting up kubectl alias...")
+	if err := tools.SetupKubectlAlias(log); err != nil {
+		// kubectl alias setup is not critical, just warn the user
+		log.Warn("kubectl alias setup failed: %v", err)
+		fmt.Println("⚠️  Warning: kubectl alias setup failed.")
+		fmt.Println("   You can manually add 'alias k=kubectl' to your ~/.bashrc")
+	}
+
+	log.Info("Installation completed successfully")
 
 	// Show getting started instructions
 	showGettingStarted(containerRuntime, kubernetesLocal, cliTools)
-}
-
-// installWithSpinner installs a tool with a spinner
-func installWithSpinner(name string, installFunc func() error) {
-	var installErr error
-
-	err := spinner.New().
-		Title(fmt.Sprintf("Installing %s...", name)).
-		Action(func() {
-			installErr = installFunc()
-		}).
-		Run()
-
-	if err != nil {
-		fmt.Printf("❌ %s spinner error: %v\n", name, err)
-	} else if installErr != nil {
-		fmt.Printf("❌ %s installation failed: %v\n", name, installErr)
-	}
-}
-
-// installSilently installs a tool in background without display
-func installSilently(installFunc func() error) error {
-	return installFunc()
 }
 
 // showGettingStarted displays customized instructions based on installation

@@ -3,25 +3,34 @@ package tools
 import (
 	"fmt"
 	"os/exec"
+
+	"github.com/Antoine-Flo/kubelocal/pkg/logger"
 )
 
 // InstallKind installs Kind
-func InstallKind() error {
+func InstallKind(log logger.Logger) error {
+	log.Info("Downloading Kind (AMD64 Linux)...")
+
 	// Download Kind (AMD64 Linux)
-	if err := exec.Command("curl", "-Lo", "./kind", "https://kind.sigs.k8s.io/dl/v0.30.0/kind-linux-amd64").Run(); err != nil {
+	downloadCmd := exec.Command("curl", "-Lo", "./kind", "https://kind.sigs.k8s.io/dl/v0.30.0/kind-linux-amd64")
+	if err := log.LogCommand(downloadCmd); err != nil {
 		return fmt.Errorf("failed to download Kind: %w", err)
 	}
 
+	log.Info("Making Kind executable...")
 	// Make executable
-	if err := exec.Command("chmod", "+x", "./kind").Run(); err != nil {
+	chmodCmd := exec.Command("chmod", "+x", "./kind")
+	if err := log.LogCommand(chmodCmd); err != nil {
 		return fmt.Errorf("failed to make Kind executable: %w", err)
 	}
 
+	log.Info("Installing Kind to /usr/local/bin...")
 	// Move to /usr/local/bin
-	if err := exec.Command("sudo", "mv", "./kind", "/usr/local/bin/kind").Run(); err != nil {
+	installCmd := exec.Command("sudo", "mv", "./kind", "/usr/local/bin/kind")
+	if err := log.LogCommand(installCmd); err != nil {
 		return fmt.Errorf("failed to install Kind: %w", err)
 	}
 
-	fmt.Println("✅ Kind installed successfully")
+	log.Info("Kind installed successfully")
 	return nil
 }

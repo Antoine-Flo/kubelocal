@@ -4,43 +4,63 @@ import (
 	"fmt"
 	"os/exec"
 	"os/user"
+
+	"github.com/Antoine-Flo/kubelocal/pkg/logger"
 )
 
 // InstallDocker installs Docker
-func InstallDocker() error {
+func InstallDocker(log logger.Logger) error {
+	log.Info("Downloading Docker installation script...")
+
 	// Download the installation script
-	if err := exec.Command("curl", "-fsSL", "https://get.docker.com", "-o", "get-docker.sh").Run(); err != nil {
+	downloadCmd := exec.Command("curl", "-fsSL", "https://get.docker.com", "-o", "get-docker.sh")
+	if err := log.LogCommand(downloadCmd); err != nil {
 		return fmt.Errorf("failed to download Docker script: %w", err)
 	}
 
+	log.Info("Executing Docker installation script...")
 	// Execute the script
-	if err := exec.Command("sudo", "sh", "get-docker.sh").Run(); err != nil {
+	installCmd := exec.Command("sudo", "sh", "get-docker.sh")
+	if err := log.LogCommand(installCmd); err != nil {
 		return fmt.Errorf("failed to install Docker: %w", err)
 	}
 
 	// Clean up
-	exec.Command("rm", "-f", "get-docker.sh").Run()
+	log.Debug("Cleaning up Docker installation files...")
+	cleanupCmd := exec.Command("rm", "-f", "get-docker.sh")
+	cleanupCmd.Run()
 
 	// Configure Docker permissions
-	if err := setupDockerPermissions(); err != nil {
-		fmt.Printf("⚠️  Docker installed but permission setup failed: %v\n", err)
-		fmt.Println("💡 You may need to run: sudo usermod -aG docker $USER && newgrp docker")
+	log.Info("Configuring Docker permissions...")
+	if err := setupDockerPermissions(log); err != nil {
+		log.Warn("Docker installed but permission setup failed: %v", err)
+		return err
 	}
 
-	fmt.Println("✅ Docker installed successfully")
+	log.Info("User added to docker group")
+
+	// Activate Docker permissions
+	log.Info("Activating Docker permissions...")
+	activateCmd := exec.Command("bash", "-c", "newgrp docker -c 'echo \"Docker permissions activated successfully\"'")
+	activateCmd.Run() // This might fail in some environments, so we don't check error
+
+	log.Info("Docker installed successfully")
 	return nil
 }
 
 // setupDockerPermissions configures Docker permissions for the current user
-func setupDockerPermissions() error {
+func setupDockerPermissions(log logger.Logger) error {
 	// Get current user
 	currentUser, err := user.Current()
 	if err != nil {
 		return fmt.Errorf("failed to get current user: %w", err)
 	}
 
+	log.Debug("Adding user %s to docker group...", currentUser.Username)
+
 	// Add user to docker group
-	if err := exec.Command("sudo", "usermod", "-aG", "docker", currentUser.Username).Run(); err != nil {
+	addUserCmd := exec.Command("sudo", "usermod", "-aG", "docker", currentUser.Username)
+	if err := log.LogCommand(addUserCmd); err != nil {
 		return fmt.Errorf("failed to add user to docker group: %w", err)
 	}
 

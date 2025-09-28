@@ -3,22 +3,28 @@ package tools
 import (
 	"fmt"
 	"os/exec"
+
+	"github.com/Antoine-Flo/kubelocal/pkg/logger"
 )
 
 // InstallPodman installs Podman
-func InstallPodman() error {
-	fmt.Println("🚀 Installing Podman...")
+func InstallPodman(log logger.Logger) error {
+	log.Info("Installing Podman...")
 
 	// Update packages
-	if err := exec.Command("sudo", "apt-get", "update").Run(); err != nil {
+	log.Info("Updating package list...")
+	updateCmd := exec.Command("sudo", "apt-get", "update")
+	if err := log.LogCommand(updateCmd); err != nil {
 		return fmt.Errorf("failed to update packages: %w", err)
 	}
 
 	// Install Podman
-	if err := exec.Command("sudo", "apt-get", "-y", "install", "podman").Run(); err != nil {
+	log.Info("Installing Podman package...")
+	installCmd := exec.Command("sudo", "apt-get", "-y", "install", "podman")
+	if err := log.LogCommand(installCmd); err != nil {
 		return fmt.Errorf("failed to install Podman: %w", err)
 	}
 
-	fmt.Println("✅ Podman installed successfully")
+	log.Info("Podman installed successfully")
 	return nil
 }
