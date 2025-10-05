@@ -62,7 +62,7 @@ func InstallKubectl(log *logger.Logger) error {
 	return nil
 }
 
-// SetupKubectlAlias adds the k=kubectl alias to bashrc
+// SetupKubectlAlias adds the k=kubectl alias to bashrc and sources it
 func SetupKubectlAlias(log *logger.Logger) error {
 	log.Info("Adding kubectl alias 'k' to bashrc...")
 
@@ -72,6 +72,13 @@ func SetupKubectlAlias(log *logger.Logger) error {
 		return fmt.Errorf("failed to add kubectl alias: %w", err)
 	}
 
-	log.Info("kubectl alias 'k' added successfully")
+	log.Info("Sourcing bashrc to activate alias...")
+	// Source bashrc to make alias immediately available
+	sourceCmd := exec.Command("bash", "-c", "source ~/.bashrc")
+	if err := log.LogCommand(sourceCmd); err != nil {
+		log.Warn("Failed to source bashrc, alias will be available after shell restart", zap.Error(err))
+	}
+
+	log.Info("kubectl alias 'k' added and activated successfully")
 	return nil
 }

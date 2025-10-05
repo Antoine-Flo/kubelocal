@@ -111,19 +111,6 @@ func setupDockerPermissions(log *logger.Logger) error {
 		}
 	}
 
-	// Solution 3: Try newgrp command
-	log.Info("Solution 3: Attempting to activate docker group with newgrp")
-	newgrpCmd := exec.Command("bash", "-c", "newgrp docker -c 'docker version'")
-	if err := log.LogCommand(newgrpCmd); err != nil {
-		log.Warn("Solution 3 failed: newgrp command failed", zap.Error(err))
-	} else {
-		log.Info("Solution 3 successful: Docker accessible via newgrp")
-		// Test if we can still access docker after newgrp
-		if canAccessDocker() {
-			log.Info("Docker access confirmed after newgrp activation")
-			return nil
-		}
-	}
 
 	// Final test
 	log.Debug("Running final Docker access test")

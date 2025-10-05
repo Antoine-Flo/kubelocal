@@ -154,6 +154,16 @@ func runSetup(log *logger.Logger) {
 		installComponent(log, "Minikube", tools.InstallMinikube)
 	}
 
+	// Install CLI tools
+	for _, tool := range cliTools {
+		switch tool {
+		case "helm":
+			installComponent(log, "Helm", tools.InstallHelm)
+		case "kustomize":
+			installComponent(log, "Kustomize", tools.InstallKustomize)
+		}
+	}
+
 	// Configure kubectl alias in background
 	log.Info("Setting up kubectl alias")
 	if err := tools.SetupKubectlAlias(log); err != nil {
