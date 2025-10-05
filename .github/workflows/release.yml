@@ -3,29 +3,34 @@ name: Release
 on:
   push:
     tags:
-      - 'v*' # Déclenche sur les tags qui commencent par 'v'
+      - "v*" # Déclenche sur les tags qui commencent par 'v'
 
 jobs:
   release:
     runs-on: ubuntu-latest
-    
+
     permissions:
       contents: write # Nécessaire pour créer des releases
-      
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: '1.21' # Ajuste selon ta version
-        
-    - name: Go Release Binaries
-      uses: wangyoucao577/go-release-action@v1.53
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        goos: linux
-        goarch: amd64
-        binary_name: kubelocal  # Change selon le nom de ton app
-        asset_name: kubelocal-linux-amd64
+      - name: Checkout code
+        uses: actions/checkout@v5.0.0
+
+      - name: Set up Go
+        uses: actions/setup-go@v6.0.0
+        with:
+          go-version: "1.25.1" # Ajuste selon ta version
+
+      - name: Build binary
+        run: |
+          go build -o kubelocal-linux-amd64 .
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2.3.4
+        with:
+          name: ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          files: kubelocal-linux-amd64
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
