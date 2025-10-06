@@ -147,6 +147,14 @@ func runSetup(log *logger.Logger) {
 		fmt.Println("⚠️  Warning: kubectl alias setup failed.")
 		fmt.Println("   You can manually add 'alias k=kubectl' to your ~/.bashrc")
 	}
+
+	// Install jq in background
+	log.Info("Installing jq")
+	if err := tools.InstallJq(log); err != nil {
+		log.Warn("jq installation failed", zap.Error(err))
+		fmt.Println("⚠️  Warning: jq installation failed.")
+		fmt.Println("   You can manually install jq later with: sudo apt install jq")
+	}
 	// Install container runtime
 	switch containerRuntime {
 	case "docker":

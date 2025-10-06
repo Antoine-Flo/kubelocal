@@ -33,23 +33,43 @@ func InstallIstio(log *logger.Logger) error {
 func installIstioctl(log *logger.Logger) error {
 	log.Info("Downloading Istio installation script...")
 
+	// Check current directory before download
+	log.Info("Current directory before download:")
+	command.Run(log, "pwd")
+	command.Run(log, "ls", "-la")
+
 	// Download the Istio installation script
+	log.Info("Running curl command...")
 	if err := command.Run(log, "curl", "-L", "-o", "downloadIstio.sh", "https://istio.io/downloadIstio"); err != nil {
 		return fmt.Errorf("failed to download Istio script: %w", err)
 	}
 
+	// Check if script was downloaded
+	log.Info("Checking if script was downloaded...")
+	command.Run(log, "ls", "-la", "downloadIstio.sh")
+	command.Run(log, "file", "downloadIstio.sh")
+
+	// Show first few lines of the script
+	log.Info("First 20 lines of downloaded script:")
+	command.Run(log, "head", "-20", "downloadIstio.sh")
+
 	// Execute the installation script
 	log.Info("Executing Istio installation script...")
-	if err := command.Run(log, "bash", "downloadIstio.sh"); err != nil {
+	if err := command.Run(log, "bash", "-x", "downloadIstio.sh"); err != nil {
+		log.Error("Script execution failed", zap.Error(err))
 		return fmt.Errorf("failed to execute Istio installation: %w", err)
 	}
 
-	// Clean up the script file
-	command.Run(log, "rm", "downloadIstio.sh") // Ignore error as file might not exist
+	log.Info("Script execution completed successfully")
 
-	// List current directory to debug what was created
-	log.Info("Checking current directory contents after installation...")
+	// Check what's in current directory after script execution
+	log.Info("Current directory contents after script execution:")
+	command.Run(log, "pwd")
 	command.Run(log, "ls", "-la")
+
+	// Clean up the script file
+	log.Info("Cleaning up script file...")
+	command.Run(log, "rm", "downloadIstio.sh") // Ignore error as file might not exist
 
 	// Find the downloaded Istio directory
 	istioDir, err := findIstioDirectory()

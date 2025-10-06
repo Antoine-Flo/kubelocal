@@ -39,7 +39,7 @@ func NewLogger() (*Logger, error) {
 	config := zap.NewProductionConfig()
 	config.OutputPaths = []string{logFile}
 	config.Encoding = "json"
-	config.Level = zap.NewAtomicLevelAt(zapcore.InfoLevel)
+	config.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
 
 	zapLogger, err := config.Build()
 	if err != nil {
