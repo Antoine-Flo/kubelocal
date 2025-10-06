@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Antoine-Flo/kubelocal/pkg/logger"
+	"github.com/Antoine-Flo/kubelocal/internal/logger"
 	"github.com/Antoine-Flo/kubelocal/tools"
 	"github.com/charmbracelet/huh"
 	"go.uber.org/zap"

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 
-	"github.com/Antoine-Flo/kubelocal/pkg/logger"
+	"github.com/Antoine-Flo/kubelocal/internal/logger"
 )
 
 // InstallHelm installs Helm using the official installation script

@@ -6,7 +6,7 @@ import (
 	"os/user"
 	"strings"
 
-	"github.com/Antoine-Flo/kubelocal/pkg/logger"
+	"github.com/Antoine-Flo/kubelocal/internal/logger"
 	"go.uber.org/zap"
 )
 
@@ -110,7 +110,6 @@ func setupDockerPermissions(log *logger.Logger) error {
 			log.Warn("Solution 2 applied but Docker still not accessible")
 		}
 	}
-
 
 	// Final test
 	log.Debug("Running final Docker access test")

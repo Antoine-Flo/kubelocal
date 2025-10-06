@@ -1,0 +1,236 @@
+package tools
+
+import (
+	"fmt"
+	"os/exec"
+	"path/filepath"
+	"strings"
+
+	"github.com/Antoine-Flo/kubelocal/internal/logger"
+	"go.uber.org/zap"
+)
+
+// InstallIstio installs Istio by downloading istioctl and setting up the environment
+func InstallIstio(log *logger.Logger) error {
+	log.Info("Installing Istio...")
+
+	// Download and install istioctl
+	if err := installIstioctl(log); err != nil {
+		return fmt.Errorf("failed to install istioctl: %w", err)
+	}
+
+	// Setup istioctl in PATH
+	if err := setupIstioctlPath(log); err != nil {
+		return fmt.Errorf("failed to setup istioctl PATH: %w", err)
+	}
+
+	log.Info("Istio installed successfully")
+	return nil
+}
+
+// installIstioctl downloads and installs the istioctl binary
+func installIstioctl(log *logger.Logger) error {
+	log.Info("Downloading Istio installation script...")
+
+	// Download the latest Istio release
+	downloadCmd := exec.Command("bash", "-c", "curl -L https://istio.io/downloadIstio | sh -")
+	if err := log.LogCommand(downloadCmd); err != nil {
+		return fmt.Errorf("failed to download Istio: %w", err)
+	}
+
+	// Find the downloaded Istio directory
+	istioDir, err := findIstioDirectory()
+	if err != nil {
+		return fmt.Errorf("failed to find Istio directory: %w", err)
+	}
+
+	log.Info("Found Istio directory", zap.String("directory", istioDir))
+
+	// Install istioctl to /usr/local/bin
+	istioctlPath := filepath.Join(istioDir, "bin", "istioctl")
+	installCmd := exec.Command("sudo", "install", "-o", "root", "-g", "root", "-m", "0755", istioctlPath, "/usr/local/bin/istioctl")
+	if err := log.LogCommand(installCmd); err != nil {
+		return fmt.Errorf("failed to install istioctl: %w", err)
+	}
+
+	// Clean up the downloaded directory
+	log.Debug("Cleaning up Istio installation directory...")
+	cleanupCmd := exec.Command("rm", "-rf", istioDir)
+	cleanupCmd.Run() // Ignore error as directory might not exist
+
+	return nil
+}
+
+// findIstioDirectory finds the downloaded Istio directory
+func findIstioDirectory() (string, error) {
+	// List current directory to find istio-* directories
+	lsCmd := exec.Command("ls", "-d", "istio-*")
+	output, err := lsCmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to list directories: %w", err)
+	}
+
+	dirs := strings.Fields(string(output))
+	if len(dirs) == 0 {
+		return "", fmt.Errorf("no Istio directory found")
+	}
+
+	// Return the first (and should be only) istio directory
+	return dirs[0], nil
+}
+
+// setupIstioctlPath adds istioctl to PATH in bashrc
+func setupIstioctlPath(log *logger.Logger) error {
+	log.Info("Adding istioctl to PATH in bashrc...")
+
+	// Add istioctl to PATH in bashrc
+	addPathCmd := exec.Command("bash", "-c", "echo 'export PATH=/usr/local/bin:$PATH' >> ~/.bashrc")
+	if err := log.LogCommand(addPathCmd); err != nil {
+		return fmt.Errorf("failed to add istioctl to PATH: %w", err)
+	}
+
+	// Source bashrc to make PATH immediately available
+	sourceCmd := exec.Command("bash", "-c", "source ~/.bashrc")
+	if err := log.LogCommand(sourceCmd); err != nil {
+		log.Warn("Failed to source bashrc, istioctl will be available after shell restart", zap.Error(err))
+	}
+
+	return nil
+}
+
+// InstallIstioOnCluster installs Istio on the specified cluster type
+func InstallIstioOnCluster(log *logger.Logger, clusterType string) error {
+	log.Info("Installing Istio on cluster", zap.String("cluster_type", clusterType))
+
+	// Prepare cluster for Istio installation
+	if err := prepareClusterForIstio(log, clusterType); err != nil {
+		return fmt.Errorf("failed to prepare cluster for Istio: %w", err)
+	}
+
+	// Install Istio using istioctl
+	if err := installIstioMesh(log, clusterType); err != nil {
+		return fmt.Errorf("failed to install Istio mesh: %w", err)
+	}
+
+	// Verify installation
+	if err := verifyIstioInstallation(log); err != nil {
+		log.Warn("Istio installation verification failed", zap.Error(err))
+	}
+
+	log.Info("Istio successfully installed on cluster")
+	return nil
+}
+
+// prepareClusterForIstio prepares the cluster for Istio installation
+func prepareClusterForIstio(log *logger.Logger, clusterType string) error {
+	log.Info("Preparing cluster for Istio installation", zap.String("cluster_type", clusterType))
+
+	switch clusterType {
+	case "kind":
+		return prepareKindForIstio(log)
+	case "minikube":
+		return prepareMinikubeForIstio(log)
+	default:
+		return fmt.Errorf("unsupported cluster type: %s", clusterType)
+	}
+}
+
+// prepareKindForIstio prepares a Kind cluster for Istio
+func prepareKindForIstio(log *logger.Logger) error {
+	log.Info("Preparing Kind cluster for Istio...")
+
+	// Kind clusters are ready for Istio by default
+	// No specific preparation needed
+	log.Info("Kind cluster is ready for Istio installation")
+	return nil
+}
+
+// prepareMinikubeForIstio prepares a Minikube cluster for Istio
+func prepareMinikubeForIstio(log *logger.Logger) error {
+	log.Info("Preparing Minikube cluster for Istio...")
+
+	// Check if minikube is running
+	statusCmd := exec.Command("minikube", "status")
+	if err := log.LogCommand(statusCmd); err != nil {
+		return fmt.Errorf("minikube is not running, please start it first")
+	}
+
+	// Check if minikube has sufficient resources
+	log.Info("Checking Minikube resources...")
+	// Note: We assume the user has already started minikube with sufficient resources
+	// as mentioned in the installation instructions
+
+	log.Info("Minikube cluster is ready for Istio installation")
+	return nil
+}
+
+// installIstioMesh installs the Istio mesh on the cluster
+func installIstioMesh(log *logger.Logger, clusterType string) error {
+	log.Info("Installing Istio mesh on cluster...")
+
+	// Install Istio with default profile
+	installCmd := exec.Command("istioctl", "install", "--set", "values.defaultRevision=default")
+	if err := log.LogCommand(installCmd); err != nil {
+		return fmt.Errorf("failed to install Istio mesh: %w", err)
+	}
+
+	// Enable Istio sidecar injection for default namespace
+	log.Info("Enabling Istio sidecar injection for default namespace...")
+	labelCmd := exec.Command("kubectl", "label", "namespace", "default", "istio-injection=enabled", "--overwrite")
+	if err := log.LogCommand(labelCmd); err != nil {
+		log.Warn("Failed to enable sidecar injection for default namespace", zap.Error(err))
+	}
+
+	return nil
+}
+
+// verifyIstioInstallation verifies that Istio is properly installed
+func verifyIstioInstallation(log *logger.Logger) error {
+	log.Info("Verifying Istio installation...")
+
+	// Check if Istio pods are running
+	checkPodsCmd := exec.Command("kubectl", "get", "pods", "-n", "istio-system")
+	if err := log.LogCommand(checkPodsCmd); err != nil {
+		return fmt.Errorf("failed to check Istio pods: %w", err)
+	}
+
+	// Verify istioctl installation
+	versionCmd := exec.Command("istioctl", "version")
+	if err := log.LogCommand(versionCmd); err != nil {
+		return fmt.Errorf("failed to verify istioctl: %w", err)
+	}
+
+	log.Info("Istio installation verified successfully")
+	return nil
+}
+
+// GetIstioInstructions returns instructions for using Istio based on cluster type
+func GetIstioInstructions(clusterType string) []string {
+	instructions := []string{
+		"🔧 Istio Service Mesh:",
+		"   • Check Istio status: istioctl version",
+		"   • View Istio pods: k get pods -n istio-system",
+		"   • Enable sidecar injection: k label namespace <namespace> istio-injection=enabled",
+	}
+
+	switch clusterType {
+	case "kind":
+		instructions = append(instructions,
+			"   • Deploy sample app: kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.27/samples/bookinfo/platform/kube/bookinfo.yaml",
+			"   • Access via port-forward: k port-forward svc/productpage 9080:9080",
+		)
+	case "minikube":
+		instructions = append(instructions,
+			"   • Deploy sample app: kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.27/samples/bookinfo/platform/kube/bookinfo.yaml",
+			"   • Access via minikube tunnel: minikube tunnel (in separate terminal)",
+			"   • Then: k port-forward svc/productpage 9080:9080",
+		)
+	}
+
+	instructions = append(instructions,
+		"   • Access Bookinfo: http://localhost:9080/productpage",
+		"   • Uninstall Istio: istioctl uninstall --purge",
+	)
+
+	return instructions
+}

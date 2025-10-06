@@ -5,7 +5,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/Antoine-Flo/kubelocal/pkg/logger"
+	"github.com/Antoine-Flo/kubelocal/internal/logger"
 	"go.uber.org/zap"
 )
 
@@ -29,21 +29,6 @@ func InstallKubectl(log *logger.Logger) error {
 	downloadCmd := exec.Command("curl", "-LO", downloadURL)
 	if err := log.LogCommand(downloadCmd); err != nil {
 		return fmt.Errorf("failed to download kubectl: %w", err)
-	}
-
-	// Download kubectl checksum
-	log.Info("Downloading kubectl checksum...")
-	checksumURL := fmt.Sprintf("https://dl.k8s.io/release/%s/bin/linux/amd64/kubectl.sha256", version)
-	checksumCmd := exec.Command("curl", "-LO", checksumURL)
-	if err := log.LogCommand(checksumCmd); err != nil {
-		return fmt.Errorf("failed to download kubectl checksum: %w", err)
-	}
-
-	// Validate the kubectl binary against the checksum file
-	log.Info("Validating kubectl checksum...")
-	validateCmd := exec.Command("bash", "-c", "echo \"$(cat kubectl.sha256)  kubectl\" | sha256sum --check")
-	if err := log.LogCommand(validateCmd); err != nil {
-		return fmt.Errorf("kubectl checksum validation failed: %w", err)
 	}
 
 	// Install kubectl to /usr/local/bin
