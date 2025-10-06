@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Antoine-Flo/kubelocal/internal/command"
 	"github.com/Antoine-Flo/kubelocal/internal/logger"
 	"go.uber.org/zap"
 )
@@ -33,8 +34,7 @@ func installIstioctl(log *logger.Logger) error {
 	log.Info("Downloading Istio installation script...")
 
 	// Download the latest Istio release
-	downloadCmd := exec.Command("bash", "-c", "curl -L https://istio.io/downloadIstio | sh -")
-	if err := log.LogCommand(downloadCmd); err != nil {
+	if err := command.Run(log, "bash", "-c", "curl -L https://istio.io/downloadIstio | sh -"); err != nil {
 		return fmt.Errorf("failed to download Istio: %w", err)
 	}
 
@@ -48,15 +48,13 @@ func installIstioctl(log *logger.Logger) error {
 
 	// Install istioctl to /usr/local/bin
 	istioctlPath := filepath.Join(istioDir, "bin", "istioctl")
-	installCmd := exec.Command("sudo", "install", "-o", "root", "-g", "root", "-m", "0755", istioctlPath, "/usr/local/bin/istioctl")
-	if err := log.LogCommand(installCmd); err != nil {
+	if err := command.Run(log, "sudo", "install", "-o", "root", "-g", "root", "-m", "0755", istioctlPath, "/usr/local/bin/istioctl"); err != nil {
 		return fmt.Errorf("failed to install istioctl: %w", err)
 	}
 
 	// Clean up the downloaded directory
 	log.Debug("Cleaning up Istio installation directory...")
-	cleanupCmd := exec.Command("rm", "-rf", istioDir)
-	cleanupCmd.Run() // Ignore error as directory might not exist
+	command.Run(log, "rm", "-rf", istioDir) // Ignore error as directory might not exist
 
 	return nil
 }
@@ -84,14 +82,12 @@ func setupIstioctlPath(log *logger.Logger) error {
 	log.Info("Adding istioctl to PATH in bashrc...")
 
 	// Add istioctl to PATH in bashrc
-	addPathCmd := exec.Command("bash", "-c", "echo 'export PATH=/usr/local/bin:$PATH' >> ~/.bashrc")
-	if err := log.LogCommand(addPathCmd); err != nil {
+	if err := command.Run(log, "bash", "-c", "echo 'export PATH=/usr/local/bin:$PATH' >> ~/.bashrc"); err != nil {
 		return fmt.Errorf("failed to add istioctl to PATH: %w", err)
 	}
 
 	// Source bashrc to make PATH immediately available
-	sourceCmd := exec.Command("bash", "-c", "source ~/.bashrc")
-	if err := log.LogCommand(sourceCmd); err != nil {
+	if err := command.Run(log, "bash", "-c", "source ~/.bashrc"); err != nil {
 		log.Warn("Failed to source bashrc, istioctl will be available after shell restart", zap.Error(err))
 	}
 
@@ -150,8 +146,7 @@ func prepareMinikubeForIstio(log *logger.Logger) error {
 	log.Info("Preparing Minikube cluster for Istio...")
 
 	// Check if minikube is running
-	statusCmd := exec.Command("minikube", "status")
-	if err := log.LogCommand(statusCmd); err != nil {
+	if err := command.Run(log, "minikube", "status"); err != nil {
 		return fmt.Errorf("minikube is not running, please start it first")
 	}
 
@@ -169,15 +164,13 @@ func installIstioMesh(log *logger.Logger, clusterType string) error {
 	log.Info("Installing Istio mesh on cluster...")
 
 	// Install Istio with default profile
-	installCmd := exec.Command("istioctl", "install", "--set", "values.defaultRevision=default")
-	if err := log.LogCommand(installCmd); err != nil {
+	if err := command.Run(log, "istioctl", "install", "--set", "values.defaultRevision=default"); err != nil {
 		return fmt.Errorf("failed to install Istio mesh: %w", err)
 	}
 
 	// Enable Istio sidecar injection for default namespace
 	log.Info("Enabling Istio sidecar injection for default namespace...")
-	labelCmd := exec.Command("kubectl", "label", "namespace", "default", "istio-injection=enabled", "--overwrite")
-	if err := log.LogCommand(labelCmd); err != nil {
+	if err := command.Run(log, "kubectl", "label", "namespace", "default", "istio-injection=enabled", "--overwrite"); err != nil {
 		log.Warn("Failed to enable sidecar injection for default namespace", zap.Error(err))
 	}
 
@@ -189,14 +182,12 @@ func verifyIstioInstallation(log *logger.Logger) error {
 	log.Info("Verifying Istio installation...")
 
 	// Check if Istio pods are running
-	checkPodsCmd := exec.Command("kubectl", "get", "pods", "-n", "istio-system")
-	if err := log.LogCommand(checkPodsCmd); err != nil {
+	if err := command.Run(log, "kubectl", "get", "pods", "-n", "istio-system"); err != nil {
 		return fmt.Errorf("failed to check Istio pods: %w", err)
 	}
 
 	// Verify istioctl installation
-	versionCmd := exec.Command("istioctl", "version")
-	if err := log.LogCommand(versionCmd); err != nil {
+	if err := command.Run(log, "istioctl", "version"); err != nil {
 		return fmt.Errorf("failed to verify istioctl: %w", err)
 	}
 

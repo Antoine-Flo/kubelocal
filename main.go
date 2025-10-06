@@ -102,6 +102,7 @@ func runSetup(log *logger.Logger) {
 				Options(
 					huh.NewOption("Helm", "helm"),
 					huh.NewOption("Kustomize", "kustomize"),
+					huh.NewOption("Istio", "istio"),
 				).
 				Value(&cliTools),
 		),
@@ -161,6 +162,8 @@ func runSetup(log *logger.Logger) {
 			installComponent(log, "Helm", tools.InstallHelm)
 		case "kustomize":
 			installComponent(log, "Kustomize", tools.InstallKustomize)
+		case "istio":
+			installComponent(log, "Istio", tools.InstallIstio)
 		}
 	}
 
@@ -171,6 +174,19 @@ func runSetup(log *logger.Logger) {
 		log.Warn("kubectl alias setup failed", zap.Error(err))
 		fmt.Println("⚠️  Warning: kubectl alias setup failed.")
 		fmt.Println("   You can manually add 'alias k=kubectl' to your ~/.bashrc")
+	}
+
+	// Install Istio on cluster if selected
+	if contains(cliTools, "istio") {
+		fmt.Println("\n=== Installing Istio on cluster ===")
+		log.Info("Installing Istio on cluster")
+		if err := tools.InstallIstioOnCluster(log, kubernetesLocal); err != nil {
+			log.Warn("Istio cluster installation failed", zap.Error(err))
+			fmt.Println("⚠️  Warning: Istio cluster installation failed.")
+			fmt.Println("   You can manually install Istio later with: istioctl install")
+		} else {
+			fmt.Println("✅ Istio successfully installed on cluster")
+		}
 	}
 
 	log.Info("Installation completed successfully")
@@ -239,5 +255,24 @@ func showGettingStarted(containerRuntime, kubernetesLocal string, cliTools []str
 		}
 	}
 
+	// Instructions for Istio
+	if contains(cliTools, "istio") {
+		fmt.Println("\n🔧 Istio Service Mesh:")
+		istioInstructions := tools.GetIstioInstructions(kubernetesLocal)
+		for _, instruction := range istioInstructions {
+			fmt.Println(instruction)
+		}
+	}
+
 	fmt.Println("\n✨ Happy Kubernetes development! ✨")
+}
+
+// contains checks if a string slice contains a specific string
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
 }

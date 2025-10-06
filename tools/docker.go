@@ -6,6 +6,7 @@ import (
 	"os/user"
 	"strings"
 
+	"github.com/Antoine-Flo/kubelocal/internal/command"
 	"github.com/Antoine-Flo/kubelocal/internal/logger"
 	"go.uber.org/zap"
 )
@@ -15,36 +16,31 @@ func InstallDocker(log *logger.Logger) error {
 	log.Info("Downloading Docker installation script...")
 
 	// Download the installation script
-	downloadCmd := exec.Command("curl", "-fsSL", "https://get.docker.com", "-o", "get-docker.sh")
-	if err := log.LogCommand(downloadCmd); err != nil {
+	if err := command.Run(log, "curl", "-fsSL", "https://get.docker.com", "-o", "get-docker.sh"); err != nil {
 		return fmt.Errorf("failed to download Docker script: %w", err)
 	}
 
 	log.Info("Executing Docker installation script...")
 	// Execute the script
-	installCmd := exec.Command("sudo", "sh", "get-docker.sh")
-	if err := log.LogCommand(installCmd); err != nil {
+	if err := command.Run(log, "sudo", "sh", "get-docker.sh"); err != nil {
 		return fmt.Errorf("failed to install Docker: %w", err)
 	}
 
 	// Clean up
 	log.Debug("Cleaning up Docker installation files...")
-	cleanupCmd := exec.Command("rm", "-f", "get-docker.sh")
-	cleanupCmd.Run()
+	command.Run(log, "rm", "-f", "get-docker.sh")
 
 	// Configure Docker permissions
 	log.Info("Configuring Docker permissions...")
 	if err := setupDockerPermissions(log); err != nil {
-		log.Warn("Docker installed but permission setup failed", zap.Error(err))
-		return err
+		return fmt.Errorf("failed to setup Docker permissions: %w", err)
 	}
 
 	log.Info("User added to docker group")
 
 	// Activate Docker permissions
 	log.Info("Activating Docker permissions...")
-	activateCmd := exec.Command("bash", "-c", "newgrp docker -c 'echo \"Docker permissions activated successfully\"'")
-	activateCmd.Run() // This might fail in some environments, so we don't check error
+	command.Run(log, "bash", "-c", "newgrp docker -c 'echo \"Docker permissions activated successfully\"'") // This might fail in some environments, so we don't check error
 
 	log.Info("Docker installed successfully")
 	return nil
@@ -66,8 +62,7 @@ func setupDockerPermissions(log *logger.Logger) error {
 		log.Info("User is already in docker group")
 	} else {
 		log.Debug("User not in docker group, adding to docker group")
-		addUserCmd := exec.Command("sudo", "usermod", "-aG", "docker", currentUser.Username)
-		if err := log.LogCommand(addUserCmd); err != nil {
+		if err := command.Run(log, "sudo", "usermod", "-aG", "docker", currentUser.Username); err != nil {
 			log.Error("Failed to add user to docker group", zap.Error(err))
 			return fmt.Errorf("failed to add user to docker group: %w", err)
 		}
@@ -83,8 +78,7 @@ func setupDockerPermissions(log *logger.Logger) error {
 
 	// Solution 1: Try using sg to activate docker group
 	log.Info("Solution 1: Attempting to activate docker group with sg")
-	sgCmd := exec.Command("sg", "docker", "-c", "docker version")
-	if err := log.LogCommand(sgCmd); err != nil {
+	if err := command.Run(log, "sg", "docker", "-c", "docker version"); err != nil {
 		log.Warn("Solution 1 failed: sg command failed", zap.Error(err))
 	} else {
 		log.Info("Solution 1 successful: Docker accessible via sg")
@@ -97,8 +91,7 @@ func setupDockerPermissions(log *logger.Logger) error {
 
 	// Solution 2: Try changing docker.sock permissions
 	log.Info("Solution 2: Attempting to change docker.sock permissions")
-	sockCmd := exec.Command("sudo", "chmod", "666", "/var/run/docker.sock")
-	if err := log.LogCommand(sockCmd); err != nil {
+	if err := command.Run(log, "sudo", "chmod", "666", "/var/run/docker.sock"); err != nil {
 		log.Warn("Solution 2 failed: Could not change docker.sock permissions", zap.Error(err))
 	} else {
 		log.Info("Solution 2 applied: docker.sock permissions changed to 666")
@@ -111,7 +104,6 @@ func setupDockerPermissions(log *logger.Logger) error {
 		}
 	}
 
-	// Final test
 	log.Debug("Running final Docker access test")
 	if canAccessDocker() {
 		log.Info("Docker permissions setup completed successfully")
@@ -122,7 +114,6 @@ func setupDockerPermissions(log *logger.Logger) error {
 	return fmt.Errorf("failed to make Docker accessible after trying all solutions")
 }
 
-// isUserInDockerGroup checks if the user is already in the docker group
 func isUserInDockerGroup(username string) bool {
 	cmd := exec.Command("groups", username)
 	output, err := cmd.Output()
@@ -132,7 +123,6 @@ func isUserInDockerGroup(username string) bool {
 	return strings.Contains(string(output), "docker")
 }
 
-// canAccessDocker tests if Docker is accessible without sudo
 func canAccessDocker() bool {
 	cmd := exec.Command("docker", "version", "--format", "{{.Server.Version}}")
 	err := cmd.Run()

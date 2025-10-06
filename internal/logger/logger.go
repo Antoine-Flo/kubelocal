@@ -3,15 +3,13 @@ package logger
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
-// Logger is just a zap.Logger with a LogCommand method
+// Logger wraps zap.Logger for structured logging
 type Logger struct {
 	*zap.Logger
 }
@@ -54,28 +52,4 @@ func NewLogger() (*Logger, error) {
 // Close closes the logger and flushes remaining data
 func (l *Logger) Close() error {
 	return l.Sync()
-}
-
-// LogCommand executes a command and logs its output using zap
-func (l *Logger) LogCommand(cmd *exec.Cmd) error {
-	l.Debug("Executing command",
-		zap.String("command", strings.Join(cmd.Args, " ")))
-
-	output, err := cmd.CombinedOutput()
-	if len(output) > 0 {
-		if len(output) > 500 {
-			l.Debug("Command output (truncated)",
-				zap.String("output", string(output[:500])),
-				zap.Int("total_length", len(output)))
-		} else {
-			l.Debug("Command output", zap.String("output", string(output)))
-		}
-	}
-
-	if err != nil {
-		l.Debug("Command failed", zap.Error(err))
-		return err
-	}
-
-	return nil
 }
