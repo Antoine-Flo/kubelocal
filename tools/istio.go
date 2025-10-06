@@ -47,6 +47,10 @@ func installIstioctl(log *logger.Logger) error {
 	// Clean up the script file
 	command.Run(log, "rm", "downloadIstio.sh") // Ignore error as file might not exist
 
+	// List current directory to debug what was created
+	log.Info("Checking current directory contents after installation...")
+	command.Run(log, "ls", "-la")
+
 	// Find the downloaded Istio directory
 	istioDir, err := findIstioDirectory()
 	if err != nil {

@@ -139,6 +139,14 @@ func runSetup(log *logger.Logger) {
 	// Install kubectl first (required for Kubernetes solutions)
 	installComponent(log, "kubectl", tools.InstallKubectl)
 
+	// Configure kubectl alias in background
+	log.Info("Setting up aliases")
+	if err := tools.SetupAliases(log); err != nil {
+		// kubectl alias setup is not critical, just warn the user
+		log.Warn("kubectl alias setup failed", zap.Error(err))
+		fmt.Println("⚠️  Warning: kubectl alias setup failed.")
+		fmt.Println("   You can manually add 'alias k=kubectl' to your ~/.bashrc")
+	}
 	// Install container runtime
 	switch containerRuntime {
 	case "docker":
@@ -165,15 +173,6 @@ func runSetup(log *logger.Logger) {
 		case "istio":
 			installComponent(log, "Istio", tools.InstallIstio)
 		}
-	}
-
-	// Configure kubectl alias in background
-	log.Info("Setting up kubectl alias")
-	if err := tools.SetupAliases(log); err != nil {
-		// kubectl alias setup is not critical, just warn the user
-		log.Warn("kubectl alias setup failed", zap.Error(err))
-		fmt.Println("⚠️  Warning: kubectl alias setup failed.")
-		fmt.Println("   You can manually add 'alias k=kubectl' to your ~/.bashrc")
 	}
 
 	// Install Istio on cluster if selected
