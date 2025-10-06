@@ -169,7 +169,7 @@ func runSetup(log *logger.Logger) {
 
 	// Configure kubectl alias in background
 	log.Info("Setting up kubectl alias")
-	if err := tools.SetupKubectlAlias(log); err != nil {
+	if err := tools.SetupAliases(log); err != nil {
 		// kubectl alias setup is not critical, just warn the user
 		log.Warn("kubectl alias setup failed", zap.Error(err))
 		fmt.Println("⚠️  Warning: kubectl alias setup failed.")
