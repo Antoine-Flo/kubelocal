@@ -33,10 +33,19 @@ func InstallIstio(log *logger.Logger) error {
 func installIstioctl(log *logger.Logger) error {
 	log.Info("Downloading Istio installation script...")
 
-	// Download the latest Istio release
-	if err := command.Run(log, "bash", "-c", "curl -L https://istio.io/downloadIstio | sh -"); err != nil {
-		return fmt.Errorf("failed to download Istio: %w", err)
+	// Download the Istio installation script
+	if err := command.Run(log, "curl", "-L", "-o", "downloadIstio.sh", "https://istio.io/downloadIstio"); err != nil {
+		return fmt.Errorf("failed to download Istio script: %w", err)
 	}
+
+	// Execute the installation script
+	log.Info("Executing Istio installation script...")
+	if err := command.Run(log, "bash", "downloadIstio.sh"); err != nil {
+		return fmt.Errorf("failed to execute Istio installation: %w", err)
+	}
+
+	// Clean up the script file
+	command.Run(log, "rm", "downloadIstio.sh") // Ignore error as file might not exist
 
 	// Find the downloaded Istio directory
 	istioDir, err := findIstioDirectory()
@@ -65,6 +74,10 @@ func findIstioDirectory() (string, error) {
 	lsCmd := exec.Command("ls", "-d", "istio-*")
 	output, err := lsCmd.Output()
 	if err != nil {
+		// Check if it's exit code 2 (no matching files found)
+		if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 2 {
+			return "", fmt.Errorf("no Istio directory found - installation may have failed")
+		}
 		return "", fmt.Errorf("failed to list directories: %w", err)
 	}
 

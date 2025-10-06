@@ -39,18 +39,40 @@ func InstallKubectl(log *logger.Logger) error {
 	return nil
 }
 
-func SetupKubectlAlias(log *logger.Logger) error {
-	log.Info("Adding kubectl alias 'k' to bashrc...")
+func InstallJq(log *logger.Logger) error {
+	log.Info("Installing jq...")
 
-	if err := command.Run(log, "bash", "-c", "echo 'alias k=kubectl' >> ~/.bashrc"); err != nil {
-		return fmt.Errorf("failed to add kubectl alias: %w", err)
+	if err := command.Run(log, "sudo", "apt", "update"); err != nil {
+		return fmt.Errorf("failed to update package list: %w", err)
 	}
 
-	log.Info("Sourcing bashrc to activate alias...")
+	if err := command.Run(log, "sudo", "apt", "install", "-y", "jq"); err != nil {
+		return fmt.Errorf("failed to install jq: %w", err)
+	}
+
+	log.Info("jq installed successfully")
+	return nil
+}
+
+func SetupAliases(log *logger.Logger) error {
+	log.Info("Setting up aliases...")
+
+	aliases := []string{
+		"alias k=kubectl",
+		"alias logs=\"cat ~/.local/share/kubelocal/logs/install.log | jq\"",
+	}
+
+	for _, alias := range aliases {
+		if err := command.Run(log, "bash", "-c", fmt.Sprintf("echo '%s' >> ~/.bashrc", alias)); err != nil {
+			return fmt.Errorf("failed to add alias: %w", err)
+		}
+	}
+
+	log.Info("Sourcing bashrc to activate aliases...")
 	if err := command.Run(log, "bash", "-c", "source ~/.bashrc"); err != nil {
-		log.Warn("Failed to source bashrc, alias will be available after shell restart", zap.Error(err))
+		log.Warn("Failed to source bashrc, aliases will be available after shell restart", zap.Error(err))
 	}
 
-	log.Info("kubectl alias 'k' added and activated successfully")
+	log.Info("All aliases added and activated successfully")
 	return nil
 }
