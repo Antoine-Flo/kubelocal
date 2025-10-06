@@ -8,22 +8,27 @@ import (
 	"go.uber.org/zap"
 )
 
-// Run executes a command with variadic arguments and logs its output using the provided logger
 func Run(log *logger.Logger, args ...string) error {
+	_, err := RunWithOutput(log, args...)
+	return err
+}
 
+func RunWithOutput(log *logger.Logger, args ...string) (string, error) {
 	cmd := exec.Command(args[0], args[1:]...)
 	log.Debug("Executing command",
 		zap.String("command", strings.Join(args, " ")))
 
 	output, err := cmd.CombinedOutput()
-	if len(output) > 0 {
-		log.Debug("Command output", zap.String("output", string(output)))
+	outputStr := string(output)
+
+	if len(outputStr) > 0 {
+		log.Debug("Command output", zap.String("output", outputStr))
 	}
 
 	if err != nil {
 		log.Debug("Command failed", zap.Error(err))
-		return err
+		return outputStr, err
 	}
 
-	return nil
+	return outputStr, nil
 }

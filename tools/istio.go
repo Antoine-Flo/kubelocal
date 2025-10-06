@@ -2,7 +2,6 @@ package tools
 
 import (
 	"fmt"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -72,7 +71,7 @@ func installIstioctl(log *logger.Logger) error {
 	command.Run(log, "rm", "downloadIstio.sh") // Ignore error as file might not exist
 
 	// Find the downloaded Istio directory
-	istioDir, err := findIstioDirectory()
+	istioDir, err := findIstioDirectory(log)
 	if err != nil {
 		return fmt.Errorf("failed to find Istio directory: %w", err)
 	}
@@ -93,25 +92,22 @@ func installIstioctl(log *logger.Logger) error {
 }
 
 // findIstioDirectory finds the downloaded Istio directory
-func findIstioDirectory() (string, error) {
-	// List current directory to find istio-* directories
-	lsCmd := exec.Command("ls", "-d", "istio-*")
-	output, err := lsCmd.Output()
+func findIstioDirectory(log *logger.Logger) (string, error) {
+	// Use find to locate istio directories
+	output, err := command.RunWithOutput(log, "find", ".", "-maxdepth", "1", "-type", "d", "-name", "istio-*")
 	if err != nil {
-		// Check if it's exit code 2 (no matching files found)
-		if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 2 {
-			return "", fmt.Errorf("no Istio directory found - installation may have failed")
-		}
-		return "", fmt.Errorf("failed to list directories: %w", err)
+		return "", fmt.Errorf("failed to find Istio directory: %w", err)
 	}
 
-	dirs := strings.Fields(string(output))
-	if len(dirs) == 0 {
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	if len(lines) == 0 || lines[0] == "" {
 		return "", fmt.Errorf("no Istio directory found")
 	}
 
-	// Return the first (and should be only) istio directory
-	return dirs[0], nil
+	// Get the first directory and remove "./" prefix if present
+	dir := strings.TrimPrefix(lines[0], "./")
+
+	return dir, nil
 }
 
 // setupIstioctlPath adds istioctl to PATH in bashrc
