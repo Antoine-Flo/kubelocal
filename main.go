@@ -63,7 +63,7 @@ func handleInstallationError(log *logger.Logger, component string, err error) {
 		zap.String("component", component),
 		zap.Error(err))
 	fmt.Printf("❌ Something went wrong during %s installation.\n", component)
-	fmt.Println("   Find the full log in ~/.local/share/kubelocal/logs/install.log or /var/log/kubelocal/install.log")
+	fmt.Println("   Find the full log in ~/.local/share/kubelocal/logs/install.log")
 	os.Exit(1)
 }
 
