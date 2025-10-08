@@ -38,6 +38,8 @@
 - **kubectl** : Latest version via dl.k8s.io/release/stable.txt
 - **jq** : Via apt (warning si échec, non-critique)
 - **Aliases bash** : `k=kubectl`, `logs` pour jq (warning si échec)
+  - Autocomplétion kubectl activée via `source <(kubectl completion bash)`
+  - Autocomplétion étendue à l'alias `k` via `complete -o default -F __start_kubectl k`
   - Futur : `cheat` pour afficher cheat sheets avec glow
 
 #### 2.2.2 Conditionnels
@@ -46,7 +48,7 @@
   - Workarounds temporaires : sg docker, chmod 666 docker.sock
 - **Kind** : v0.30.0 (hardcodé, à améliorer)
 - **Minikube** : Latest release
-- **K3s** : Latest via get.k3s.io
+- **K3s** : Latest via get.k3s.io (téléchargé puis exécuté en deux étapes)
   - Inclut configuration kubectl automatique (~/.kube/config)
 - **Helm** : Si sélectionné, via script officiel
 - **Kustomize** : Si sélectionné, via script officiel
@@ -242,8 +244,9 @@ type CommandRunner interface {
 ## 6. Shell Support
 
 ### Actuel
-- **bash** : Aliases ajoutés à ~/.bashrc
-- **Limitation** : Source bashrc ne fonctionne pas toujours
+- **bash** : Configuration complète (voir section 2.2.1)
+  - Message affiché : utilisateur doit faire `source ~/.bashrc` ou redémarrer shell
+- **Limitation** : Source automatique impossible (subprocess ne peut modifier shell parent)
 
 ### Futur
 - **zsh** : Support prévu
@@ -474,7 +477,6 @@ Centraliser les cheat sheets de tous les outils installés dans un fichier markd
 - Docker permissions workaround temporaire
 - Spinner efface messages sur erreur
 - Logs incohérents (fmt vs zap)
-- Source bashrc inefficace
 - Versions hardcodées (Kind)
 
 ---

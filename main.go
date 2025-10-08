@@ -192,6 +192,9 @@ func runSetup(log *logger.Logger) {
 		log.Warn("kubectl alias setup failed", zap.Error(err))
 		fmt.Println("⚠️  Warning: kubectl alias setup failed.")
 		fmt.Println("   You can manually add 'alias k=kubectl' to your ~/.bashrc")
+	} else {
+		fmt.Println("✅ Aliases added to ~/.bashrc")
+		fmt.Println("   Run 'source ~/.bashrc' or restart your shell to activate them")
 	}
 
 	// Install jq in background

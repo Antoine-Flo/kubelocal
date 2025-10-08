@@ -57,22 +57,19 @@ func InstallJq(log *logger.Logger) error {
 func SetupAliases(log *logger.Logger) error {
 	log.Info("Setting up aliases...")
 
-	aliases := []string{
+	lines := []string{
+		"source <(kubectl completion bash)",
 		"alias k=kubectl",
+		"complete -o default -F __start_kubectl k",
 		"alias logs=\"cat ~/.local/share/kubelocal/logs/install.log | jq\"",
 	}
 
-	for _, alias := range aliases {
-		if err := command.Run(log, "bash", "-c", fmt.Sprintf("echo '%s' >> ~/.bashrc", alias)); err != nil {
-			return fmt.Errorf("failed to add alias: %w", err)
+	for _, line := range lines {
+		if err := command.Run(log, "bash", "-c", fmt.Sprintf("echo '%s' >> ~/.bashrc", line)); err != nil {
+			return fmt.Errorf("failed to add line to bashrc: %w", err)
 		}
 	}
 
-	log.Info("Sourcing bashrc to activate aliases...")
-	if err := command.Run(log, "bash", "-c", "source ~/.bashrc"); err != nil {
-		log.Warn("Failed to source bashrc, aliases will be available after shell restart", zap.Error(err))
-	}
-
-	log.Info("All aliases added and activated successfully")
+	log.Info("Aliases added to ~/.bashrc successfully")
 	return nil
 }
