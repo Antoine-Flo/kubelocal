@@ -4,10 +4,12 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/Antoine-Flo/kubelocal/internal/logger"
 	"github.com/Antoine-Flo/kubelocal/tools"
 	"github.com/charmbracelet/huh"
+	"github.com/charmbracelet/huh/spinner"
 	"go.uber.org/zap"
 )
 
@@ -50,10 +52,21 @@ Kubernetes Local Development Setup 🚀
 
 // installComponent handles the common pattern of printing progress, logging, and error handling
 func installComponent(log *logger.Logger, component string, installFunc func(*logger.Logger) error) {
-	fmt.Printf("Installing %s...\n", component)
 	log.Info("Installing component", zap.String("component", component))
-	if err := installFunc(log); err != nil {
+
+	var installErr error
+	if err := spinner.New().
+		Title(fmt.Sprintf("Installing %s...", component)).
+		Action(func() {
+			installErr = installFunc(log)
+		}).
+		Run(); err != nil {
 		handleInstallationError(log, component, err)
+		return
+	}
+
+	if installErr != nil {
+		handleInstallationError(log, component, installErr)
 	}
 }
 
@@ -76,32 +89,31 @@ func runSetup(log *logger.Logger) {
 
 	log.Info("Starting kubelocal installation")
 
-	// Container runtime selection
+	// Kubernetes solution selection
 	form := huh.NewForm(
-		huh.NewGroup(
-			huh.NewSelect[string]().
-				Title("Choose your container runtime:").
-				Options(
-					huh.NewOption("Docker", "docker"),
-					huh.NewOption("Podman", "podman"),
-				).
-				Value(&containerRuntime),
-		),
 		huh.NewGroup(
 			huh.NewSelect[string]().
 				Title("Choose your local Kubernetes solution:").
 				Options(
 					huh.NewOption("Kind", "kind"),
 					huh.NewOption("Minikube", "minikube"),
+					huh.NewOption("K3s", "k3s"),
 				).
 				Value(&kubernetesLocal),
 		),
 		huh.NewGroup(
 			huh.NewMultiSelect[string]().
-				Title("Choose your deployment tools:").
+				Title("Choose your manifest management tools:").
 				Options(
 					huh.NewOption("Helm", "helm"),
 					huh.NewOption("Kustomize", "kustomize"),
+				).
+				Value(&cliTools),
+		),
+		huh.NewGroup(
+			huh.NewMultiSelect[string]().
+				Title("Choose your service mesh:").
+				Options(
 					huh.NewOption("Istio", "istio"),
 				).
 				Value(&cliTools),
@@ -116,19 +128,41 @@ func runSetup(log *logger.Logger) {
 		os.Exit(1)
 	}
 
+	// Determine if Docker is needed
+	needsDocker := kubernetesLocal == "kind" || kubernetesLocal == "minikube"
+	if needsDocker {
+		containerRuntime = "docker"
+	}
+
 	// Log user selections
 	log.Debug("User selections",
-		zap.String("container_runtime", containerRuntime),
 		zap.String("kubernetes_local", kubernetesLocal),
+		zap.Bool("needs_docker", needsDocker),
 		zap.Strings("cli_tools", cliTools))
 
 	// Display choices and simulate installation
 	fmt.Println("\n=== Configuration Summary ===")
-	fmt.Printf("Container Runtime: %s\n", containerRuntime)
 	fmt.Printf("Kubernetes Local: %s\n", kubernetesLocal)
-	fmt.Printf("Deployment Tools: kubectl")
+	if needsDocker {
+		fmt.Printf("Container Runtime: Docker (required for %s)\n", kubernetesLocal)
+	} else {
+		fmt.Println("Container Runtime: None (K3s includes everything)")
+	}
+	fmt.Printf("Manifest Management: kubectl")
+	manifestTools := []string{}
+	serviceMesh := []string{}
 	for _, tool := range cliTools {
+		if tool == "istio" {
+			serviceMesh = append(serviceMesh, tool)
+		} else {
+			manifestTools = append(manifestTools, tool)
+		}
+	}
+	for _, tool := range manifestTools {
 		fmt.Printf(", %s", tool)
+	}
+	if len(serviceMesh) > 0 {
+		fmt.Printf("\nService Mesh: %s", strings.Join(serviceMesh, ", "))
 	}
 	fmt.Println()
 
@@ -155,12 +189,9 @@ func runSetup(log *logger.Logger) {
 		fmt.Println("⚠️  Warning: jq installation failed.")
 		fmt.Println("   You can manually install jq later with: sudo apt install jq")
 	}
-	// Install container runtime
-	switch containerRuntime {
-	case "docker":
+	// Install container runtime only if needed
+	if needsDocker {
 		installComponent(log, "Docker", tools.InstallDocker)
-	case "podman":
-		installComponent(log, "Podman", tools.InstallPodman)
 	}
 
 	// Install local Kubernetes solution
@@ -169,6 +200,8 @@ func runSetup(log *logger.Logger) {
 		installComponent(log, "Kind", tools.InstallKind)
 	case "minikube":
 		installComponent(log, "Minikube", tools.InstallMinikube)
+	case "k3s":
+		installComponent(log, "K3s", tools.InstallK3s)
 	}
 
 	// Install CLI tools
@@ -230,26 +263,49 @@ func showGettingStarted(containerRuntime, kubernetesLocal string, cliTools []str
 		fmt.Printf("      minikube dashboard\n")
 		fmt.Println("\n   4. When you're done:")
 		fmt.Printf("      minikube stop\n")
+
+	case "k3s":
+		fmt.Println("   1. Start your cluster:")
+		fmt.Printf("      sudo systemctl start k3s\n")
+		fmt.Println("\n   2. Verify your cluster:")
+		fmt.Printf("      sudo k3s kubectl get nodes\n")
+		fmt.Println("\n   3. Set up kubectl access:")
+		fmt.Printf("      mkdir -p ~/.kube\n")
+		fmt.Printf("      sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config\n")
+		fmt.Printf("      sudo chown $USER ~/.kube/config\n")
+		fmt.Println("\n   4. When you're done:")
+		fmt.Printf("      sudo systemctl stop k3s\n")
 	}
 
-	// Instructions for Docker/Podman
-	fmt.Printf("\n💡 Container Runtime (%s) Tips:\n", containerRuntime)
-	switch containerRuntime {
-	case "docker":
+	// Instructions for container runtime
+	needsDocker := kubernetesLocal == "kind" || kubernetesLocal == "minikube"
+	if needsDocker {
+		fmt.Println("\n💡 Docker Tips:")
 		fmt.Println("   • Check Docker status: docker --version")
 		fmt.Println("   • Test Docker access: docker ps")
 		fmt.Println("   • If permission denied, run: newgrp docker")
 		fmt.Println("   • Or logout/login to apply docker group changes")
-
-	case "podman":
-		fmt.Println("   • Check Podman status: podman --version")
-		fmt.Println("   • List running containers: podman ps")
+	} else {
+		fmt.Println("\n💡 K3s Tips:")
+		fmt.Println("   • Check K3s status: sudo systemctl status k3s")
+		fmt.Println("   • View K3s logs: sudo journalctl -u k3s -f")
+		fmt.Println("   • K3s includes everything: containerd, CNI, etc.")
 	}
 
-	// Instructions for CLI tools
-	if len(cliTools) > 0 {
-		fmt.Println("\n🔧 Additional Tools:")
-		for _, tool := range cliTools {
+	// Instructions for manifest management tools
+	manifestTools := []string{}
+	serviceMesh := []string{}
+	for _, tool := range cliTools {
+		if tool == "istio" {
+			serviceMesh = append(serviceMesh, tool)
+		} else {
+			manifestTools = append(manifestTools, tool)
+		}
+	}
+
+	if len(manifestTools) > 0 {
+		fmt.Println("\n🔧 Manifest Management Tools:")
+		for _, tool := range manifestTools {
 			switch tool {
 			case "helm":
 				fmt.Println("   • Helm: helm version")
@@ -262,12 +318,18 @@ func showGettingStarted(containerRuntime, kubernetesLocal string, cliTools []str
 		}
 	}
 
-	// Instructions for Istio
-	if contains(cliTools, "istio") {
-		fmt.Println("\n🔧 Istio Service Mesh:")
-		istioInstructions := tools.GetIstioInstructions(kubernetesLocal)
-		for _, instruction := range istioInstructions {
-			fmt.Println(instruction)
+	// Instructions for service mesh
+	if len(serviceMesh) > 0 {
+		fmt.Println("\n🌐 Service Mesh:")
+		for _, tool := range serviceMesh {
+			switch tool {
+			case "istio":
+				fmt.Println("   • Istio Service Mesh:")
+				istioInstructions := tools.GetIstioInstructions(kubernetesLocal)
+				for _, instruction := range istioInstructions {
+					fmt.Println(instruction)
+				}
+			}
 		}
 	}
 
