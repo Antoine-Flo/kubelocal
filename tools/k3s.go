@@ -11,7 +11,11 @@ func InstallK3s(log *logger.Logger) error {
 	log.Info("Installing K3s...")
 
 	// Install K3s using the official installer
-	if err := command.Run(log, "curl", "-sfL", "https://get.k3s.io", "|", "sh", "-"); err != nil {
+	if err := command.Run(log, "curl", "-sfL", "-o", "/tmp/k3s-install.sh", "https://get.k3s.io"); err != nil {
+		return fmt.Errorf("failed to download K3s installer: %w", err)
+	}
+
+	if err := command.Run(log, "sh", "/tmp/k3s-install.sh"); err != nil {
 		return fmt.Errorf("failed to install K3s: %w", err)
 	}
 
