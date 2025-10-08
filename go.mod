@@ -4,7 +4,6 @@ go 1.25.1
 
 require (
 	github.com/charmbracelet/huh v0.7.0
-	github.com/charmbracelet/huh/spinner v0.0.0-20250922180342-f197546b2ab1
 	go.uber.org/zap v1.27.0
 )
 

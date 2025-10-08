@@ -4,12 +4,13 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
+
+	// "strings"
+	"time"
 
 	"github.com/Antoine-Flo/kubelocal/internal/logger"
 	"github.com/Antoine-Flo/kubelocal/tools"
 	"github.com/charmbracelet/huh"
-	"github.com/charmbracelet/huh/spinner"
 	"go.uber.org/zap"
 )
 
@@ -50,23 +51,34 @@ Kubernetes Local Development Setup 🚀
 	fmt.Print("Welcome! Let's set up your local Kubernetes environment.\n")
 }
 
+func runSpinner(message string, done chan bool) {
+	chars := []string{"|", "/", "-", "\\"}
+	i := 0
+	for {
+		select {
+		case <-done:
+			fmt.Printf("\r%s ✅\n", message)
+			return
+		default:
+			fmt.Printf("\r%s %s", message, chars[i%4])
+			i++
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
+}
+
 // installComponent handles the common pattern of printing progress, logging, and error handling
 func installComponent(log *logger.Logger, component string, installFunc func(*logger.Logger) error) {
 	log.Info("Installing component", zap.String("component", component))
 
-	var installErr error
-	if err := spinner.New().
-		Title(fmt.Sprintf("Installing %s...", component)).
-		Action(func() {
-			installErr = installFunc(log)
-		}).
-		Run(); err != nil {
-		handleInstallationError(log, component, err)
-		return
-	}
+	done := make(chan bool)
+	go runSpinner(fmt.Sprintf("Installing %s...", component), done)
 
-	if installErr != nil {
-		handleInstallationError(log, component, installErr)
+	err := installFunc(log)
+	done <- true
+
+	if err != nil {
+		handleInstallationError(log, component, err)
 	}
 }
 
@@ -110,14 +122,14 @@ func runSetup(log *logger.Logger) {
 				).
 				Value(&cliTools),
 		),
-		huh.NewGroup(
-			huh.NewMultiSelect[string]().
-				Title("Choose your service mesh:").
-				Options(
-					huh.NewOption("Istio", "istio"),
-				).
-				Value(&cliTools),
-		),
+		// huh.NewGroup(
+		// 	huh.NewMultiSelect[string]().
+		// 		Title("Choose your service mesh:").
+		// 		Options(
+		// 			huh.NewOption("Istio", "istio"),
+		// 		).
+		// 		Value(&cliTools),
+		// ),
 	).WithTheme(huh.ThemeBase16())
 
 	err := form.Run()
@@ -149,21 +161,21 @@ func runSetup(log *logger.Logger) {
 		fmt.Println("Container Runtime: None (K3s includes everything)")
 	}
 	fmt.Printf("Manifest Management: kubectl")
-	manifestTools := []string{}
-	serviceMesh := []string{}
+	// manifestTools := []string{}
+	// serviceMesh := []string{}
+	// for _, tool := range cliTools {
+	// 	if tool == "istio" {
+	// 		serviceMesh = append(serviceMesh, tool)
+	// 	} else {
+	// 		manifestTools = append(manifestTools, tool)
+	// 	}
+	// }
 	for _, tool := range cliTools {
-		if tool == "istio" {
-			serviceMesh = append(serviceMesh, tool)
-		} else {
-			manifestTools = append(manifestTools, tool)
-		}
-	}
-	for _, tool := range manifestTools {
 		fmt.Printf(", %s", tool)
 	}
-	if len(serviceMesh) > 0 {
-		fmt.Printf("\nService Mesh: %s", strings.Join(serviceMesh, ", "))
-	}
+	// if len(serviceMesh) > 0 {
+	// 	fmt.Printf("\nService Mesh: %s", strings.Join(serviceMesh, ", "))
+	// }
 	fmt.Println()
 
 	// Real installation
@@ -211,23 +223,23 @@ func runSetup(log *logger.Logger) {
 			installComponent(log, "Helm", tools.InstallHelm)
 		case "kustomize":
 			installComponent(log, "Kustomize", tools.InstallKustomize)
-		case "istio":
-			installComponent(log, "Istio", tools.InstallIstio)
+			// case "istio":
+			// 	installComponent(log, "Istio", tools.InstallIstio)
 		}
 	}
 
 	// Install Istio on cluster if selected
-	if contains(cliTools, "istio") {
-		fmt.Println("\n=== Installing Istio on cluster ===")
-		log.Info("Installing Istio on cluster")
-		if err := tools.InstallIstioOnCluster(log, kubernetesLocal); err != nil {
-			log.Warn("Istio cluster installation failed", zap.Error(err))
-			fmt.Println("⚠️  Warning: Istio cluster installation failed.")
-			fmt.Println("   You can manually install Istio later with: istioctl install")
-		} else {
-			fmt.Println("✅ Istio successfully installed on cluster")
-		}
-	}
+	// if contains(cliTools, "istio") {
+	// 	fmt.Println("\n=== Installing Istio on cluster ===")
+	// 	log.Info("Installing Istio on cluster")
+	// 	if err := tools.InstallIstioOnCluster(log, kubernetesLocal); err != nil {
+	// 		log.Warn("Istio cluster installation failed", zap.Error(err))
+	// 		fmt.Println("⚠️  Warning: Istio cluster installation failed.")
+	// 		fmt.Println("   You can manually install Istio later with: istioctl install")
+	// 	} else {
+	// 		fmt.Println("✅ Istio successfully installed on cluster")
+	// 	}
+	// }
 
 	log.Info("Installation completed successfully")
 
@@ -293,19 +305,19 @@ func showGettingStarted(containerRuntime, kubernetesLocal string, cliTools []str
 	}
 
 	// Instructions for manifest management tools
-	manifestTools := []string{}
-	serviceMesh := []string{}
-	for _, tool := range cliTools {
-		if tool == "istio" {
-			serviceMesh = append(serviceMesh, tool)
-		} else {
-			manifestTools = append(manifestTools, tool)
-		}
-	}
+	// manifestTools := []string{}
+	// serviceMesh := []string{}
+	// for _, tool := range cliTools {
+	// 	if tool == "istio" {
+	// 		serviceMesh = append(serviceMesh, tool)
+	// 	} else {
+	// 		manifestTools = append(manifestTools, tool)
+	// 	}
+	// }
 
-	if len(manifestTools) > 0 {
+	if len(cliTools) > 0 {
 		fmt.Println("\n🔧 Manifest Management Tools:")
-		for _, tool := range manifestTools {
+		for _, tool := range cliTools {
 			switch tool {
 			case "helm":
 				fmt.Println("   • Helm: helm version")
@@ -319,29 +331,29 @@ func showGettingStarted(containerRuntime, kubernetesLocal string, cliTools []str
 	}
 
 	// Instructions for service mesh
-	if len(serviceMesh) > 0 {
-		fmt.Println("\n🌐 Service Mesh:")
-		for _, tool := range serviceMesh {
-			switch tool {
-			case "istio":
-				fmt.Println("   • Istio Service Mesh:")
-				istioInstructions := tools.GetIstioInstructions(kubernetesLocal)
-				for _, instruction := range istioInstructions {
-					fmt.Println(instruction)
-				}
-			}
-		}
-	}
+	// if len(serviceMesh) > 0 {
+	// 	fmt.Println("\n🌐 Service Mesh:")
+	// 	for _, tool := range serviceMesh {
+	// 		switch tool {
+	// 		case "istio":
+	// 			fmt.Println("   • Istio Service Mesh:")
+	// 			istioInstructions := tools.GetIstioInstructions(kubernetesLocal)
+	// 			for _, instruction := range istioInstructions {
+	// 				fmt.Println(instruction)
+	// 			}
+	// 		}
+	// 	}
+	// }
 
 	fmt.Println("\n✨ Happy Kubernetes development! ✨")
 }
 
 // contains checks if a string slice contains a specific string
-func contains(slice []string, item string) bool {
-	for _, s := range slice {
-		if s == item {
-			return true
-		}
-	}
-	return false
-}
+// func contains(slice []string, item string) bool {
+// 	for _, s := range slice {
+// 		if s == item {
+// 			return true
+// 		}
+// 	}
+// 	return false
+// }

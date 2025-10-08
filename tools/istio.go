@@ -159,6 +159,8 @@ func prepareClusterForIstio(log *logger.Logger, clusterType string) error {
 		return prepareKindForIstio(log)
 	case "minikube":
 		return prepareMinikubeForIstio(log)
+	case "k3s":
+		return prepareK3sForIstio(log)
 	default:
 		return fmt.Errorf("unsupported cluster type: %s", clusterType)
 	}
@@ -189,6 +191,16 @@ func prepareMinikubeForIstio(log *logger.Logger) error {
 	// as mentioned in the installation instructions
 
 	log.Info("Minikube cluster is ready for Istio installation")
+	return nil
+}
+
+// prepareK3sForIstio prepares a K3s cluster for Istio
+func prepareK3sForIstio(log *logger.Logger) error {
+	log.Info("Preparing K3s cluster for Istio...")
+
+	// K3s clusters are ready for Istio by default
+	// No specific preparation needed
+	log.Info("K3s cluster is ready for Istio installation")
 	return nil
 }
 
